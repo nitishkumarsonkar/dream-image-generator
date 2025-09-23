@@ -7,9 +7,11 @@ const Home: NextPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [notes, setNotes] = useState<string>('');
   const [savedNotes, setSavedNotes] = useState<string>('');
+  const [submittedNotes, setSubmittedNotes] = useState<string>('');
 
   const handleSave = (t: string) => {
     setSavedNotes(t);
+    setSubmittedNotes(notes);
   };
 
   return (
@@ -34,6 +36,12 @@ const Home: NextPage = () => {
           {savedNotes && (
             <div className="mt-4 text-sm text-neutral-700">
               Saved text: <span className="font-medium">{savedNotes}</span>
+            </div>
+          )}
+
+          {submittedNotes && (
+            <div className="mt-4 p-3 bg-white rounded-lg shadow-sm text-sm text-neutral-700">
+              Response: <span className="font-medium">{submittedNotes}</span>
             </div>
           )}
 
