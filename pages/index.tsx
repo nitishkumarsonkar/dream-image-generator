@@ -5,10 +5,12 @@ import ImageUploader from '../components/ImageUploader';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const Home: NextPage = () => {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [notes, setNotes] = useState<string>('');
   const [savedNotes, setSavedNotes] = useState<string>('');
   const [submittedNotes, setSubmittedNotes] = useState<string>('');
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -28,7 +30,7 @@ const Home: NextPage = () => {
   useEffect(() => {
     if (genAI) {
       try {
-        const modelInstance = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const modelInstance = genAI.getGenerativeModel({ model: "gemini-2.5-flash-image-preview" });
         setModel(modelInstance);
       } catch (err) {
         console.error('Error initializing model:', err);
@@ -37,31 +39,72 @@ const Home: NextPage = () => {
   }, [genAI]);
 
   // Function to generate response using Gemini API
-  const generateGeminiResponse = async (prompt: string) => {
-    if (!genAI || !model) {
-      throw new Error('API client or model not initialized');
-    }
-
+  const generateGeminiResponse = async (prompt: string, imageFiles?: File[]) => {
+    // Instead of calling Gemini directly from the client (which caused payload issues),
+    // POST to our server API which uses the official Node client and supports inline images.
     try {
-      console.log('Sending prompt to Gemini:', prompt);
-      
-      // Create a proper prompt structure
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.8,
-          maxOutputTokens: 1000,
-        },
+      const imagesPayload: Array<{ mimeType: string; data: string }> = [];
+      if (imageFiles && imageFiles.length > 0) {
+        for (const f of imageFiles) {
+          const arrayBuffer = await f.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+          const b64 = window.btoa(binary);
+          imagesPayload.push({ mimeType: f.type || 'image/png', data: b64 });
+        }
+      }
+
+      const resp = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, images: imagesPayload }),
       });
 
-      const response = await result.response;
-      console.log('Received response:', response);
-      
-      return response.text();
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        const message = err.error || err.message || 'Server error';
+        // Attach server detail for UI debug
+        throw new Error(`${message}${err.detail ? ' — ' + JSON.stringify(err.detail) : ''}`);
+      }
+
+      const json = await resp.json();
+
+      // Helper: extract parts regardless of response shape
+      const extractParts = (obj: any) => {
+        if (!obj) return [];
+        // Direct parts
+        if (Array.isArray(obj.parts)) return obj.parts;
+
+        // Some responses return candidates -> [ { content: { parts: [...] } } ]
+        if (Array.isArray(obj.candidates) && obj.candidates.length > 0) {
+          const c = obj.candidates[0];
+          if (c?.content?.parts && Array.isArray(c.content.parts)) return c.content.parts;
+          if (c?.content && typeof c.content === 'object' && (c.content.type || c.content.mimeType)) {
+            // Single content object (image/text)
+            return [c.content];
+          }
+        }
+
+        // Fallback: return empty array
+        return [];
+      };
+
+      // Normalize and sanitize base64 data (remove whitespace/newlines)
+      const rawParts = extractParts(json);
+      const parts = rawParts.map((p: any) => {
+        if (p && p.type === 'image' && typeof p.data === 'string') {
+          // Remove any whitespace or newlines that might be injected into base64
+          const cleaned = p.data.replace(/\s+/g, '');
+          return { ...p, data: cleaned };
+        }
+        return p;
+      });
+
+      // json.parts is array of { type: 'text'|'image', text?, mimeType?, data? }
+      return parts;
     } catch (err) {
-      console.error('Detailed error:', err);
+      console.error('Client generate error:', err);
       throw err;
     }
   };
@@ -94,17 +137,41 @@ const Home: NextPage = () => {
         throw new Error('Please enter some text before generating a response');
       }
       
-      // Generate response from Gemini API
-      const response = await generateGeminiResponse(notes);
-      
-      console.log('Response received:', response);
-      
-      // Only update state if we got a valid response
-      if (response) {
-        setSubmittedNotes(response);
-      } else {
-        throw new Error('No response from API');
+      // Generate response from server-side Gemini proxy
+      const parts = await generateGeminiResponse(notes, files);
+
+      console.log('Response parts received:', parts);
+
+      // Extract text parts and image parts
+      const texts: string[] = [];
+      const images: string[] = [];
+      if (Array.isArray(parts)) {
+        for (const p of parts) {
+          if (p.type === 'text' && p.text) texts.push(p.text);
+
+          if (p.type === 'image' && p.data) {
+            // p.data may already be a full data URL (starts with 'data:')
+            // or it may be raw base64. Handle both safely.
+            let imgStr = String(p.data).trim();
+
+            if (imgStr.startsWith('data:')) {
+              // Already a data URL — use as-is
+              images.push(imgStr);
+            } else {
+              // Clean whitespace/newlines and strip any accidental 'base64,' prefix
+              imgStr = imgStr.replace(/\s+/g, '');
+              if (imgStr.startsWith('base64,')) imgStr = imgStr.slice('base64,'.length);
+              const mime = p.mimeType || 'image/png';
+              images.push(`data:${mime};base64,${imgStr}`);
+            }
+          }
+        }
       }
+
+  setSubmittedNotes(texts.join('\n\n'));
+  setGeneratedImages(images);
+  // set selected index to first image when new images arrive
+  if (images.length > 0) setSelectedGeneratedIndex(0);
     } catch (err: any) {
       // Show user-friendly error message with more details
       const errorMessage = err.message || 'Unknown error occurred';
@@ -118,7 +185,7 @@ const Home: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Image Uploader</title>
+        <title>Image Generator</title>
         <meta name="description" content="Upload an image and preview it instantly." />
         <meta name="viewport" content="initial-scale=1.0, width=device-width" />
       </Head>
@@ -132,11 +199,11 @@ const Home: NextPage = () => {
             </p>
           </header>
 
-          <ImageUploader onImageSelected={setFile} onTextChange={setNotes} onSubmitText={handleSave} />
+          <ImageUploader onImagesSelected={setFiles} onTextChange={setNotes} onSubmitText={handleSave} />
 
           {savedNotes && (
             <div className="mt-4 text-sm text-neutral-700">
-              Saved text: <span className="font-medium">{savedNotes}</span>
+              Saved Prompt: <span className="font-medium">{savedNotes}</span>
             </div>
           )}
 
@@ -152,21 +219,56 @@ const Home: NextPage = () => {
             </div>
           )}
 
+          {/* Render text response if available */}
           {!isLoading && submittedNotes && (
             <div className="mt-4 p-3 bg-white rounded-lg shadow-sm text-sm text-neutral-700">
               Response: <span className="font-medium">{submittedNotes}</span>
             </div>
           )}
 
-          {file && (
+          {/* generated images placeholder moved below into its own wrapper (separate div) */}
+
+          {files.length > 0 && (
             <div className="mt-6 text-sm text-neutral-600">
-              <p>Selected: <span className="font-medium text-neutral-800">{file.name}</span></p>
-              <p>Size: {(file.size / (1024 * 1024)).toFixed(2)} MB</p>
-              <p>Type: {file.type || 'Unknown'}</p>
+              <p className="font-medium">Selected files:</p>
+              <ul className="mt-2 space-y-1">
+                {files.map((f, i) => (
+                  <li key={`${f.name}-${i}`}>
+                    {f.name} — {(f.size / (1024 * 1024)).toFixed(2)} MB — {f.type || 'Unknown'}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
       </main>
+
+      {/* Separate generated images section (renders outside main content) */}
+      {generatedImages.length > 0 && (
+        <section className="mx-auto max-w-3xl px-6 py-8">
+          <div className="p-3 bg-white rounded-lg shadow-sm text-sm text-neutral-700">
+            <div className="mb-2 text-sm text-neutral-500">Generated image preview</div>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="rounded-md bg-black/5 p-4 flex items-center justify-center">
+                <img src={generatedImages[selectedGeneratedIndex]} alt={`generated-${selectedGeneratedIndex}`} className="max-h-[480px] w-full object-contain rounded-md" />
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                {generatedImages.map((src, i) => (
+                  <button key={i} type="button" className={`rounded-md overflow-hidden border ${i === selectedGeneratedIndex ? 'ring-2 ring-black' : ''}`} onClick={() => setSelectedGeneratedIndex(i)}>
+                    <img src={src} alt={`thumb-${i}`} className="h-20 w-20 object-cover" />
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                <a href={generatedImages[selectedGeneratedIndex]} target="_blank" rel="noreferrer" className="px-3 py-2 rounded-md border bg-white">Open in new tab</a>
+                <a download={`generated-${selectedGeneratedIndex}.png`} href={generatedImages[selectedGeneratedIndex]} className="px-3 py-2 rounded-md bg-black text-white">Download</a>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </>
   );
 };

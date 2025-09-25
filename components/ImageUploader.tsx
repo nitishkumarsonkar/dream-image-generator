@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 type ImageUploaderProps = {
+  // Backwards-compatible single-file callback
   onImageSelected?: (file: File) => void;
+  // New multi-file callback
+  onImagesSelected?: (files: File[]) => void;
   onTextChange?: (text: string) => void;
   onSubmitText?: (text: string) => void;
   initialText?: string;
@@ -9,55 +12,83 @@ type ImageUploaderProps = {
   className?: string;
 };
 
-function ImageUploader({ onImageSelected, onTextChange, onSubmitText, initialText, maxSizeMB = 5, className }: ImageUploaderProps): JSX.Element {
+function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubmitText, initialText, maxSizeMB = 5, className }: ImageUploaderProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState<string>(initialText ?? '');
 
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      // cleanup all object URLs on unmount
+      previewUrls.forEach((u) => URL.revokeObjectURL(u));
     };
-  }, [previewUrl]);
+  }, [previewUrls]);
 
   const handleOpenPicker = () => {
     inputRef.current?.click();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (PNG, JPG, GIF, etc.).');
-      e.target.value = '';
-      return;
-    }
+    const selected = Array.from(e.target.files ?? []);
+    if (selected.length === 0) return;
 
     const maxBytes = maxSizeMB * 1024 * 1024;
-    if (file.size > maxBytes) {
-      setError(`Image must be ≤ ${maxSizeMB}MB.`);
-      e.target.value = '';
-      return;
+    const validFiles: File[] = [];
+    const newPreviewUrls: string[] = [];
+
+    for (const f of selected) {
+      if (!f.type.startsWith('image/')) {
+        setError('Please select only image files (PNG, JPG, GIF, etc.).');
+        e.target.value = '';
+        return;
+      }
+
+      if (f.size > maxBytes) {
+        setError(`Each image must be ≤ ${maxSizeMB}MB.`);
+        e.target.value = '';
+        return;
+      }
+
+      validFiles.push(f);
+      newPreviewUrls.push(URL.createObjectURL(f));
     }
 
     setError(null);
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
+    // append to existing files (keep previous selection)
+    const updatedFiles = [...files, ...validFiles];
+    const updatedPreviews = [...previewUrls, ...newPreviewUrls];
 
-    onImageSelected?.(file);
+    setFiles(updatedFiles);
+    setPreviewUrls(updatedPreviews);
+
+    // Callbacks
+    // For backwards compatibility, call onImageSelected with the first newly selected file
+    if (validFiles[0]) onImageSelected?.(validFiles[0]);
+    onImagesSelected?.(updatedFiles);
   };
 
   const handleClear = () => {
     setError(null);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
+    // revoke all
+    previewUrls.forEach((u) => URL.revokeObjectURL(u));
+    setPreviewUrls([]);
+    setFiles([]);
     if (inputRef.current) inputRef.current.value = '';
+  };
+
+  const handleRemoveAt = (index: number) => {
+    const url = previewUrls[index];
+    if (url) URL.revokeObjectURL(url);
+    const newUrls = previewUrls.filter((_, i) => i !== index);
+    const newFiles = files.filter((_, i) => i !== index);
+    setPreviewUrls(newUrls);
+    setFiles(newFiles);
+    onImagesSelected?.(newFiles);
+    // Keep backward compatibility: if after removal there's at least one file, call onImageSelected with first
+    if (newFiles[0]) onImageSelected?.(newFiles[0]);
   };
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -89,10 +120,10 @@ function ImageUploader({ onImageSelected, onTextChange, onSubmitText, initialTex
           onClick={handleOpenPicker}
           className="px-4 py-2 rounded-md bg-black text-white hover:bg-neutral-800 transition"
         >
-          Choose Image
+          Choose Images
         </button>
 
-        {previewUrl && (
+        {previewUrls.length > 0 && (
           <button
             type="button"
             onClick={handleClear}
@@ -110,12 +141,22 @@ function ImageUploader({ onImageSelected, onTextChange, onSubmitText, initialTex
       <div className="mt-6 rounded-lg border bg-white p-3">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="md:w-1/2">
-            {previewUrl ? (
-              <img
-                src={previewUrl}
-                alt="Selected preview"
-                className="w-full h-auto rounded-md object-contain"
-              />
+            {previewUrls.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {previewUrls.map((url, idx) => (
+                  <div key={url} className="relative">
+                    <img src={url} alt={`preview-${idx}`} className="w-full h-36 object-cover rounded-md" />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAt(idx)}
+                      className="absolute top-1 right-1 bg-white rounded-full p-1 shadow"
+                      aria-label={`Remove image ${idx + 1}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="flex h-48 items-center justify-center text-neutral-500">
                 No image selected
@@ -123,7 +164,7 @@ function ImageUploader({ onImageSelected, onTextChange, onSubmitText, initialTex
             )}
           </div>
           <div className="md:w-1/2">
-            <label htmlFor="image-notes" className="block text-sm font-medium text-neutral-700 mb-2">Notes</label>
+            <label htmlFor="image-notes" className="block text-sm font-medium text-neutral-700 mb-2">Prompt</label>
             <textarea
               id="image-notes"
               value={text}
