@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Minimal global styles */
+:root {
+  color-scheme: light;
+}
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  @apply text-neutral-900 antialiased;
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  background: radial-gradient(1200px 600px at 10% 10%, rgba(99,102,241,0.08), transparent 8%),
+              radial-gradient(1000px 500px at 90% 90%, rgba(237,233,254,0.08), transparent 8%),
+              linear-gradient(180deg, #fbfdff 0%, #f8fafc 100%);
+}
+
+/* Container utility used by main content */
+.app-container {
+  max-width: 72rem; /* 1152px */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* Glass card: subtle white card with soft border and shadow */
+.glass-card {
+  background-color: rgba(255,255,255,0.8);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border-radius: 0.5rem; /* rounded-lg */
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 6px 18px rgba(2,6,23,0.06);
+}
+
+/* Accent buttons */
+.btn-accent {
+  padding: 0.5rem 1rem; /* px-4 py-2 */
+  border-radius: 0.375rem; /* rounded-md */
+  background-image: linear-gradient(90deg, #111827 0%, #374151 100%); /* neutral-900 -> neutral-700 */
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 8px 20px rgba(15,23,42,0.12);
+  transition: all 160ms ease;
+}
+.btn-accent:hover { transform: translateY(-1px); }
+
+.btn-ghost {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(229,231,235,1); /* neutral-200 */
+  background-color: rgba(255,255,255,0.6);
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+.btn-ghost:hover { background-color: rgba(255,255,255,0.9); transform: translateY(-1px); }
+
+/* Thumbnail styles */
+.thumb {
+  border-radius: 0.375rem; /* rounded-md */
+  overflow: hidden;
+  border: 1px solid transparent;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+.thumb:hover { border-color: rgba(148,163,184,1); transform: translateY(-2px); }
+
+/* Subtle utility animations */
+.fade-in {
+  animation: fadeIn 320ms ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive tweaks */
+@media (min-width: 768px) {
+  .app-container { padding-left: 2rem; padding-right: 2rem; }
+}
