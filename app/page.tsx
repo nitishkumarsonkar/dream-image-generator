@@ -192,42 +192,41 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="min-h-screen">
+      {/* Desktop fixed sidebar */}
+      <aside className="hidden md:block fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] z-30 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 p-4 overflow-y-auto">
+        <SidebarPresets
+          selectedKey={selectedPreset}
+          onSelect={handlePresetSelect}
+          onApplyCustom={handleApplyCustom}
+        />
+      </aside>
+
+      {/* Mobile sidebar drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-40">
+          <div
+            className="absolute inset-0 bg-black/40"
+            aria-hidden="true"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside
+            id="mobile-sidebar"
+            className="absolute left-0 top-0 h-full w-72 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 p-3"
+            aria-label="Sidebar presets"
+          >
+            <SidebarPresets
+              selectedKey={selectedPreset}
+              onSelect={handlePresetSelect}
+              onApplyCustom={handleApplyCustom}
+            />
+          </aside>
+        </div>
+      )}
+
+      <main className="min-h-screen pt-16 md:ml-64"> {/* Added pt-16 for header height, ml-64 for fixed sidebar */}
         <div className="app-container px-6 py-16">
-          {/* Mobile sidebar drawer */}
-          {mobileOpen && (
-            <div className="md:hidden fixed inset-0 z-40">
-              <div
-                className="absolute inset-0 bg-black/40"
-                aria-hidden="true"
-                onClick={() => setMobileOpen(false)}
-              />
-              <aside
-                id="mobile-sidebar"
-                className="absolute left-0 top-0 h-full w-72 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 p-3"
-                aria-label="Sidebar presets"
-              >
-                <SidebarPresets
-                  selectedKey={selectedPreset}
-                  onSelect={handlePresetSelect}
-                  onApplyCustom={handleApplyCustom}
-                />
-              </aside>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:[grid-template-columns:16rem_1fr] gap-6 items-start">
-            {/* Desktop sidebar (left column) */}
-            <aside className="hidden md:block">
-              <SidebarPresets
-                selectedKey={selectedPreset}
-                onSelect={handlePresetSelect}
-                onApplyCustom={handleApplyCustom}
-              />
-            </aside>
-
-            {/* Main content (right column) */}
-            <section className="min-w-0">
+          {/* Main content */}
+          <section className="min-w-0">
               <header className="mb-6">
                 <div className="flex items-center gap-3">
                   {/* Burger for mobile (open drawer) */}
@@ -347,13 +346,12 @@ export default function HomePage() {
                   </ul>
                 </div>
               )}
-            </section>
-          </div>
+          </section>
         </div>
       </main>
 
       {generatedImages.length > 0 && (
-        <section className="mx-auto max-w-3xl px-6 py-8">
+        <section className="mx-auto max-w-3xl px-6 py-8 md:ml-64">
           <div className="p-3 bg-white dark:bg-neutral-900 rounded-lg shadow-sm text-sm text-neutral-700 dark:text-neutral-200">
             <div className="mb-2 text-sm text-neutral-500 dark:text-neutral-400">
               Generated image preview
