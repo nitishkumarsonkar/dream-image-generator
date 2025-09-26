@@ -40,7 +40,7 @@ export default function Header(): JSX.Element {
   };
 
   return (
-    <header className="bg-transparent">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm dark:bg-neutral-900/80">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between">
           {/* Left: Brand + Desktop Nav */}
