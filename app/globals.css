@@ -20,6 +20,18 @@ body {
               linear-gradient(180deg, #fbfdff 0%, #f8fafc 100%);
 }
 
+/* Dark mode overrides */
+.dark { 
+  color-scheme: dark; 
+}
+
+.dark body {
+  @apply text-neutral-100;
+  background: radial-gradient(1200px 600px at 10% 10%, rgba(2,6,23,0.35), transparent 20%),
+              radial-gradient(1000px 500px at 90% 90%, rgba(15,23,42,0.3), transparent 20%),
+              linear-gradient(180deg, #0b0f1a 0%, #0a0a0a 100%);
+}
+
 /* Container utility used by main content */
 .app-container {
   max-width: 72rem; /* 1152px */
