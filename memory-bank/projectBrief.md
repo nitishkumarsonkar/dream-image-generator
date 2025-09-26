@@ -1,0 +1,36 @@
+# Dream Image Generator
+
+## Overview
+Dream Image Generator is an interactive web application that transforms user inputs (images or text) into AI-generated images using Google's Gemini API. Add comments for code change for future refernce and uderstanding. 
+
+## Features
+- Text-to-image generation
+- Image-to-image transformation
+- Real-time image preview
+- User-friendly interface
+
+## Technical Stack
+### Frontend
+- Next.js 14.2.8
+- React 18.3.1
+- typescript
+- Tailwind CSS (for styling)
+
+### AI Integration
+- Google Gemini API (@google/generative-ai)
+
+## Project Flow
+1. User Input
+   - Accept text descriptions
+   - Accept image uploads
+2. Processing
+   - Send inputs to Gemini API
+   - Handle API responses
+3. Output
+   - Display generated images
+   - Enable download/sharing options
+
+## Development Requirements
+- Node.js 18+
+- Google Cloud API key
+- Environment variables setup for API keys

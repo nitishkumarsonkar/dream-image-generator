@@ -1,8 +1,8 @@
 {
-  "name": "next-image-uploader",
+  "name": "dream-image-generator",
   "version": "1.0.0",
   "private": true,
-  "description": "Simple Next.js + TypeScript image upload with live preview",
+  "description": "Simple Next.js + TypeScript image generator using gemini api",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
