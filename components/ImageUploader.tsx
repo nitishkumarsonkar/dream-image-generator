@@ -116,6 +116,11 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
     const value = e.target.value;
     setText(value);
     onTextChange?.(value);
+    
+    // Auto-resize textarea
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 240) + 'px'; // Max 10 lines (24px per line * 10)
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -146,61 +151,76 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
       />
 
 
-      <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+      {/* <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
         Max {maxImages} images, {maxSizeMB}MB each. Supported: PNG, JPG, GIF, etc. You have selected {previewUrls.length}/{maxImages}.
-      </p>
+      </p> */}
 
       {error && (
         <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
 
-      <div className="mt-6 rounded-lg border bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 p-3">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="md:w-1/2">
-            {/* <label htmlFor="image-notes" className="block text-sm font-medium text-neutral-700 mb-2">Prompt</label> */}
-            <div className="relative">
-              {previewUrls.length > 0 && (
-                <div className="absolute top-2 left-2 right-2 flex gap-2 overflow-x-auto h-12 items-center">
-                  {previewUrls.map((url, idx) => (
-                    <div key={url} className="relative flex-shrink-0">
-                      <img src={url} alt={`preview-${idx}`} className="h-10 w-10 object-cover rounded-md border border-neutral-200 dark:border-neutral-700" />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAt(idx)}
-                        className="absolute -top-1 -right-1 bg-white dark:bg-neutral-800 rounded-full p-0.5 shadow border border-neutral-200 dark:border-neutral-700"
-                        aria-label={`Remove image ${idx + 1}`}
-                      >
-                        <span className="text-xs leading-none">✕</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <textarea
-                id="image-notes"
-                value={text}
-                onChange={handleTextChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Type here..."
-                className="w-full h-48 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 p-2 pt-16 pr-14 pl-14 focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-700"
-              />
+      <div className="space-y-3 w-[80%] mx-auto">
+        {/* Image previews */}
+        {previewUrls.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto h-20 w-100%">
+            {previewUrls.map((url, idx) => (
+              <div key={url} className="relative flex-shrink-0">
+                <img src={url} alt={`preview-${idx}`} className="h-20 w-20 object-cover rounded-md border border-neutral-200 dark:border-neutral-700" />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveAt(idx)}
+                  className="absolute top-1 -right-1 bg-white dark:bg-neutral-800 rounded-full p-0.5 shadow border border-neutral-200 dark:border-neutral-700"
+                  aria-label={`Remove image ${idx + 1}`}
+                >
+                  <span className="text-xs leading-none">✕</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Textarea with action buttons */}
+        <div className="space-y-3" >
+          <div className="flex-1 relative rounded-xl border border-neutral-300 bg-white dark:bg-neutral-900">
+            <textarea
+              id="image-prompt"
+              value={text}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe your idea or roll the dice for prompt ideas"
+              className="w-full min-h-[60px] max-h-[240px] text-neutral-900 dark:text-neutral-100 mt-2 placeholder-neutral-400 dark:placeholder-neutral-500 dark:bg-neutral-900 px-4 py-3 pr-32 focus:outline-none focus:ring-0 resize-none"
+              style={{ height: 'auto' }}
+            />
+
+
+            {/* Icon buttons group inside textarea */}
+            <div className=" w-full h-10 flex">
+               {/* Main action button inside textarea */}
+            <button
+              type="button"
+              onClick={handleOpenPicker}
+              disabled={previewUrls.length >= maxImages || isSubmitting}
+              className="absolute left-2 flex items-center gap-2 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="h-3 w-3"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h14M12 5l7 7-7 7" />
+              </svg>
+              <span className="text-xs font-medium">Add Images</span>
+            </button>
+            
+              {/* Aspect ratio button */}
               <button
                 type="button"
-                onClick={handleOpenPicker}
-                disabled={previewUrls.length >= maxImages || isSubmitting}
-                aria-label="Add images"
-                title="Add images"
-                className="absolute bottom-2 left-2 h-9 w-9 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-black dark:text-neutral-100 flex items-center justify-center shadow hover:bg-neutral-50 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                <span className="text-lg leading-none">+</span>
-              </button>
-              <button 
-                type="button"
-                onClick={handleSubmit}
-                disabled={!text.trim() || isSubmitting}
-                aria-label="Submit prompt"
-                title="Submit (Enter). Shift+Enter for newline."
-                className="absolute bottom-2 right-2 h-9 w-9 rounded-full bg-black text-white flex items-center justify-center shadow hover:bg-neutral-800 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="h-6 w-6 absolute right-16 flex rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center justify-center transition-all duration-200 shadow-sm"
+                title="Aspect ratio"
+                
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -208,8 +228,47 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="h-4 w-4"
-                  aria-hidden="true"
+                  className="h-3 w-3"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <path d="M9 9h6v6H9z"/>
+                </svg>
+              </button>
+
+              {/* Settings button */}
+              <button
+                type="button"
+                className="h-6 w-6 absolute right-10 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center justify-center transition-all duration-200 shadow-sm"
+                title="Settings"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-3 w-3"
+                >
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+              </button>
+
+              {/* Submit button */}
+              <button 
+                type="button"
+                onClick={handleSubmit}
+                disabled={!text.trim() || isSubmitting}
+                className="h-6 w-6 absolute right-2 rounded-md bg-black text-white flex items-center justify-center hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                title="Submit prompt"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-3 w-3"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h14M12 5l7 7-7 7" />
                 </svg>
