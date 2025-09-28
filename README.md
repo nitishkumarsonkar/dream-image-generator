@@ -1,189 +1,122 @@
-# Dream Image Generator (Next.js + TypeScript + Gemini AI)
+# Dream Image Generator
 
-An interactive web application that allows users to:
-- Upload and preview images instantly
-- Enter text prompts for AI-powered image analysis
-- Get AI-generated responses using Google's Gemini AI
-- Save and view response history
+[![Next.js](https://img.shields.io/badge/Next.js-14.2.8-black.svg)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5.4-blue.svg)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.10-38B2AC.svg)](https://tailwindcss.com/)
+[![Google Gemini API](https://img.shields.io/badge/Google_Gemini_API-Integrated-green.svg)](https://ai.google.dev/)
 
-This project uses functional React components with hooks (useState, useRef, useEffect) and is fully typed with TypeScript.
+Dream Image Generator is an interactive web application that transforms user inputs (text prompts and/or reference images) into AI-generated images using Google's Gemini API. It features a clean, responsive UI with preset styles, real-time previews, and easy integration.
+![alt text](image.png)
+## Features
+
+- **Text-to-Image Generation**: Create images from descriptive text prompts.
+- **Image-to-Image Transformation**: Upload reference images to guide AI generation.
+- **Style Presets**: Quick styles like Instagram-ready, Ghibli-inspired, or professional.
+- **Real-Time Preview**: Instant image uploads with validation (size, type, count).
+- **Dark Mode Support**: Toggle between light and dark themes.
+- **Responsive Design**: Works seamlessly on mobile and desktop.
+- **Additional Pages**: About and Sign-in pages for extended functionality.
+- **API Integration**: Secure server-side handling of Gemini API calls.
 
 ## Tech Stack
 
-- Next.js 14
-- React 18
-- TypeScript 5
-- TailwindCSS 3
-- Google Gemini AI
-- PostCSS
-
-## Features
-
-- Clean, minimal UI with responsive design
-- Real-time image preview
-- Image validation (file type and size)
-- Integration with Google's Gemini AI for text generation
-- Asynchronous API handling with loading states
-- Error handling and user feedback
-- Type-safe implementation with TypeScript
+- **Framework**: Next.js 14 (App Router)
+- **UI Library**: React 18
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **AI**: Google Gemini API (@google/generative-ai)
+- **Build Tools**: PostCSS, npm
 
 ## Prerequisites
 
-Before you begin, ensure you have:
-- Node.js 18+ installed
-- npm package manager
-- Google Gemini API key (Get one from [Google AI Studio](https://makersuite.google.com/app/apikey))
+- Node.js 18+ 
+- npm or yarn
+- Google Gemini API key (obtain from [Google AI Studio](https://aistudio.google.com/app/apikey))
 
-## Getting Started
+## Installation
 
 1. Clone the repository:
-```bash
-git clone https://github.com/nitishkumarsonkar/dream-image-generator.git
-cd dream-image-generator
-```
+   ```
+   git clone https://github.com/yourusername/dream-image-generator.git
+   cd dream-image-generator
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-```
+   ```
+   npm install
+   ```
 
-3. Set up environment variables:
-Create a `.env.local` file in the root directory with:
-```
-NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here
-```
+3. Set up environment variables: Create a `.env.local` file in the root:
+   ```
+   NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here
+   ```
 
 4. Run the development server:
-```bash
-npm run dev
-```
+   ```
+   npm run dev
+   ```
 
-5. Open the app in your browser:
-```
-http://localhost:3000
-```
+5. Open in browser: [http://localhost:3000](http://localhost:3000)
+
+## Usage
+
+- **Home Page**: Enter a text prompt, optionally upload images (up to 5, max 5MB each), select a preset, and generate.
+- **Presets**: Choose from sidebar (desktop) or menu (mobile) to append style-specific instructions internally.
+- **Generation**: Click submit to process via Gemini API; view results with download options.
+- **About Page**: Learn more about the app.
+- **Sign-in Page**: Placeholder for authentication.
 
 ## Project Structure
 
 ```
 dream-image-generator/
-├─ components/
-│  └─ ImageUploader.tsx    # Image upload component with preview
-├─ pages/
-│  ├─ _app.tsx            # App configuration and global styles
-│  └─ index.tsx           # Main page with Gemini AI integration
-├─ styles/
-│  └─ globals.css         # Global styles and Tailwind directives
-├─ env.d.ts              # Environment variable types
-├─ tailwind.config.js    # Tailwind configuration
-├─ postcss.config.js     # PostCSS configuration
-├─ next-env.d.ts         # Next.js TypeScript definitions
-└─ package.json          # Project dependencies and scripts
+├─ app/                    # App Router pages and layouts
+│  ├─ layout.tsx          # Root layout with global styles
+│  ├─ page.tsx            # Home page with main functionality
+│  ├─ about/page.tsx      # About page
+│  ├─ sign-in/page.tsx    # Sign-in page
+│  ├─ api/generate/route.ts # API route for Gemini integration
+│  └─ globals.css         # Global CSS with Tailwind
+├─ components/             # Reusable React components
+│  ├─ Header.tsx          # Navigation header
+│  ├─ ImageUploader.tsx   # Image upload and prompt input
+│  ├─ SidebarPresets.tsx  # Preset selection sidebar
+│  └─ ThemeToggle.tsx     # Dark mode toggle
+├─ memory-bank/            # Documentation files (internal)
+├─ public/                 # Static assets (if any)
+├─ .gitignore
+├─ env.d.ts               # Environment types
+├─ package.json           # Dependencies and scripts
+├─ postcss.config.js      # PostCSS config
+├─ README.md              # This file
+├─ tailwind.config.js     # Tailwind configuration
+└─ tsconfig.json          # TypeScript configuration
 ```
 
-## How It Works
+## Scripts
 
-### Image Upload Component
-- Handles image file selection and validation
-- Provides instant image preview
-- Manages text input for AI prompts
-- Responsive layout that works on all screen sizes
-
-### Gemini AI Integration
-- Processes user text input through Google's Gemini AI
-- Generates contextual responses
-- Handles API communication with proper error handling
-- Provides loading states for better UX
-
-### API Usage
-Example cURL request to test the Gemini API:
-```bash
-curl -X POST \
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent' \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "contents": [
-      {
-        "role": "user",
-        "parts": [
-          {
-            "text": "Your prompt text here"
-          }
-        ]
-      }
-    ],
-    "generationConfig": {
-      "temperature": 0.7,
-      "topK": 40,
-      "topP": 0.8,
-      "maxOutputTokens": 1000
-    }
-  }'
-```
-
-## Development Commands
-
-```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Run linting
-npm run lint
-```
-
-## Environment Variables
-
-- `NEXT_PUBLIC_GEMINI_API_KEY`: Your Google Gemini API key (required)
+- `npm run dev`: Start development server
+- `npm run build`: Build for production
+- `npm start`: Start production server
+- `npm run lint`: Run ESLint
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ## License
 
-This project is licensed under the ISC License.
+This project is licensed under the ISC License. See [LICENSE](LICENSE) for details.
 
-- pages/index.tsx
-  - Demonstrates using ImageUploader:
-    - Stores selected File in file state
-    - Stores live notes text in notes state
-    - Saves submitted text into savedNotes state via handleSave
+## Acknowledgments
 
-## Customization
+- Built with Next.js and React
+- Powered by Google Gemini API
+- Styled with Tailwind CSS
 
-- Change max size:
-  - Pass maxSizeMB to the component, e.g. <ImageUploader maxSizeMB={2} />
-- Pre-fill notes:
-  - Pass initialText, e.g. <ImageUploader initialText="Hello" />
-- Handle submit:
-  - Provide onSubmitText to integrate with an API or form handling:
-    ```tsx
-    const handleSave = async (t: string) => {
-      // TODO: call your API here
-      console.log('Saving text:', t);
-    };
-    <ImageUploader onSubmitText={handleSave} />
-    ```
-
-## Scripts
-
-- npm run dev — start dev server
-- npm run build — build for production
-- npm start — start production server
-
-## Notes
-
-- This app uses TailwindCSS for minimal styling; adjust classes as needed.
-- The preview URL is revoked on cleanup to avoid memory leaks.
-- The Submit button is disabled for empty/whitespace-only notes.
+For questions or issues, open a GitHub issue.
