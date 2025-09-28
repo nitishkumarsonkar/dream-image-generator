@@ -1,7 +1,7 @@
 # Dream Image Generator
 
 ## Overview
-Dream Image Generator is an interactive web application that transforms user inputs (images or text) into AI-generated images using Google's Gemini API. Add comments for code change for future refernce and uderstanding. 
+Dream Image Generator is an interactive web application that transforms user inputs (images or text) into AI-generated images using Google's Gemini API. There will some pre define themes like image generation for intstagram post, image create for linked post, etc. Add comments for code change for future refernce and uderstanding. 
 
 ## Features
 - Text-to-image generation

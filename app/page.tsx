@@ -223,7 +223,9 @@ export default function HomePage() {
         </div>
       )}
 
-      <main className="h-screen pt-16 md:ml-64 flex flex-col"> {/* Fixed height with flex layout */}
+      <main className="h-screen pt-16 md:ml-64 flex flex-col">
+        {" "}
+        {/* Fixed height with flex layout */}
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto">
           <div className="app-container px-6 py-16">
@@ -273,7 +275,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </header>
-
 
               {savedNotes && (
                 <div className="mt-4 text-sm text-neutral-700 dark:text-neutral-200">
@@ -401,7 +402,6 @@ export default function HomePage() {
             </section>
           </div>
         </div>
-
         {/* Fixed textarea at bottom */}
         <div className="p-4">
           <ImageUploader
