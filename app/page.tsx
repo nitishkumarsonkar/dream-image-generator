@@ -192,41 +192,42 @@ export default function HomePage() {
 
   return (
     <>
-      <main className="min-h-screen">
-        <div className="app-container px-6 py-16">
-          {/* Mobile sidebar drawer */}
-          {mobileOpen && (
-            <div className="md:hidden fixed inset-0 z-40">
-              <div
-                className="absolute inset-0 bg-black/40"
-                aria-hidden="true"
-                onClick={() => setMobileOpen(false)}
-              />
-              <aside
-                id="mobile-sidebar"
-                className="absolute left-0 top-0 h-full w-72 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 p-3"
-                aria-label="Sidebar presets"
-              >
-                <SidebarPresets
-                  selectedKey={selectedPreset}
-                  onSelect={handlePresetSelect}
-                  onApplyCustom={handleApplyCustom}
-                />
-              </aside>
-            </div>
-          )}
+      {/* Desktop fixed sidebar */}
+      <aside className="hidden md:block fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] z-30 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 p-4 overflow-y-auto">
+        <SidebarPresets
+          selectedKey={selectedPreset}
+          onSelect={handlePresetSelect}
+          onApplyCustom={handleApplyCustom}
+        />
+      </aside>
 
-          <div className="grid grid-cols-1 md:[grid-template-columns:16rem_1fr] gap-6 items-start">
-            {/* Desktop sidebar (left column) */}
-            <aside className="hidden md:block">
-              <SidebarPresets
-                selectedKey={selectedPreset}
-                onSelect={handlePresetSelect}
-                onApplyCustom={handleApplyCustom}
-              />
-            </aside>
+      {/* Mobile sidebar drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-40">
+          <div
+            className="absolute inset-0 bg-black/40"
+            aria-hidden="true"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside
+            id="mobile-sidebar"
+            className="absolute left-0 top-0 h-full w-72 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 p-3"
+            aria-label="Sidebar presets"
+          >
+            <SidebarPresets
+              selectedKey={selectedPreset}
+              onSelect={handlePresetSelect}
+              onApplyCustom={handleApplyCustom}
+            />
+          </aside>
+        </div>
+      )}
 
-            {/* Main content (right column) */}
+      <main className="h-screen pt-16 md:ml-64 flex flex-col"> {/* Fixed height with flex layout */}
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="app-container px-6 py-16">
+            {/* Main content */}
             <section className="min-w-0">
               <header className="mb-6">
                 <div className="flex items-center gap-3">
@@ -273,14 +274,6 @@ export default function HomePage() {
                 </div>
               </header>
 
-              <ImageUploader
-                onImagesSelected={setFiles}
-                onTextChange={setNotes}
-                onSubmitText={handleSave}
-                isSubmitting={isLoading}
-                maxImages={5}
-                maxSizeMB={5}
-              />
 
               {savedNotes && (
                 <div className="mt-4 text-sm text-neutral-700 dark:text-neutral-200">
@@ -347,68 +340,80 @@ export default function HomePage() {
                   </ul>
                 </div>
               )}
+
+              {generatedImages.length > 0 && (
+                <div className="mt-8">
+                  <div className="p-3 bg-white dark:bg-neutral-900 rounded-lg shadow-sm text-sm text-neutral-700 dark:text-neutral-200">
+                    <div className="mb-2 text-sm text-neutral-500 dark:text-neutral-400">
+                      Generated image preview
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="rounded-md bg-black/5 dark:bg-white/5 p-4 flex items-center justify-center">
+                        <img
+                          src={generatedImages[selectedGeneratedIndex]}
+                          alt={`generated-${selectedGeneratedIndex}`}
+                          className="max-h-[480px] w-full object-contain rounded-md"
+                        />
+                      </div>
+
+                      <div className="mt-3 flex gap-2">
+                        {generatedImages.map((src, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            className={`rounded-md overflow-hidden border ${
+                              i === selectedGeneratedIndex
+                                ? "ring-2 ring-black dark:ring-white"
+                                : ""
+                            }`}
+                            onClick={() => setSelectedGeneratedIndex(i)}
+                          >
+                            <img
+                              src={src}
+                              alt={`thumb-${i}`}
+                              className="h-20 w-20 object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 flex gap-2">
+                        <a
+                          href={generatedImages[selectedGeneratedIndex]}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-2 rounded-md border bg-white dark:border-neutral-700 dark:bg-neutral-900"
+                        >
+                          Open in new tab
+                        </a>
+                        <a
+                          download={`generated-${selectedGeneratedIndex}.png`}
+                          href={generatedImages[selectedGeneratedIndex]}
+                          className="px-3 py-2 rounded-md bg-black text-white"
+                        >
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           </div>
         </div>
+
+        {/* Fixed textarea at bottom */}
+        <div className="p-4">
+          <ImageUploader
+            onImagesSelected={setFiles}
+            onTextChange={setNotes}
+            onSubmitText={handleSave}
+            isSubmitting={isLoading}
+            maxImages={5}
+            maxSizeMB={5}
+          />
+        </div>
       </main>
-
-      {generatedImages.length > 0 && (
-        <section className="mx-auto max-w-3xl px-6 py-8">
-          <div className="p-3 bg-white dark:bg-neutral-900 rounded-lg shadow-sm text-sm text-neutral-700 dark:text-neutral-200">
-            <div className="mb-2 text-sm text-neutral-500 dark:text-neutral-400">
-              Generated image preview
-            </div>
-            <div className="grid grid-cols-1 gap-4">
-              <div className="rounded-md bg-black/5 dark:bg-white/5 p-4 flex items-center justify-center">
-                <img
-                  src={generatedImages[selectedGeneratedIndex]}
-                  alt={`generated-${selectedGeneratedIndex}`}
-                  className="max-h-[480px] w-full object-contain rounded-md"
-                />
-              </div>
-
-              <div className="mt-3 flex gap-2">
-                {generatedImages.map((src, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className={`rounded-md overflow-hidden border ${
-                      i === selectedGeneratedIndex
-                        ? "ring-2 ring-black dark:ring-white"
-                        : ""
-                    }`}
-                    onClick={() => setSelectedGeneratedIndex(i)}
-                  >
-                    <img
-                      src={src}
-                      alt={`thumb-${i}`}
-                      className="h-20 w-20 object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-3 flex gap-2">
-                <a
-                  href={generatedImages[selectedGeneratedIndex]}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3 py-2 rounded-md border bg-white dark:border-neutral-700 dark:bg-neutral-900"
-                >
-                  Open in new tab
-                </a>
-                <a
-                  download={`generated-${selectedGeneratedIndex}.png`}
-                  href={generatedImages[selectedGeneratedIndex]}
-                  className="px-3 py-2 rounded-md bg-black text-white"
-                >
-                  Download
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
     </>
   );
 }
