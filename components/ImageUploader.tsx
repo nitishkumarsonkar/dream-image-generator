@@ -11,6 +11,8 @@ type ImageUploaderProps = {
   maxSizeMB?: number;
   maxImages?: number; // New prop for max images limit
   isSubmitting?: boolean; // New prop to disable submit during loading
+  aspectLabel?: string; // UI badge text e.g. "4:5"
+  aspectTooltip?: string; // Hover text e.g. "1080×1350"
   presetAppend?: { text: string; nonce: number };
   className?: string;
 };
@@ -24,6 +26,8 @@ function ImageUploader({
   maxSizeMB = 5,
   maxImages = 5,
   isSubmitting = false,
+  aspectLabel,
+  aspectTooltip,
   className,
   presetAppend,
 }: ImageUploaderProps): JSX.Element {
@@ -236,7 +240,7 @@ function ImageUploader({
               <button
                 type="button"
                 className="aspect-ratio-btn"
-                title="Aspect ratio"
+                title={aspectTooltip || "Aspect ratio"}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -249,6 +253,11 @@ function ImageUploader({
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   <path d="M9 9h6v6H9z" />
                 </svg>
+                {aspectLabel && (
+                  <span className="text-[10px] ml-1 opacity-80">
+                    {aspectLabel}
+                  </span>
+                )}
               </button>
 
               {/* Settings button */}
