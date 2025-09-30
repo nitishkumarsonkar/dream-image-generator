@@ -1,22 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-
-export type PresetKey = "instagram" | "ghibli" | "professional" | "other";
+import { PRESETS, PresetKey, formatResolution } from "../lib/presets";
 
 type SidebarPresetsProps = {
-  selectedKey: string | null;
-  onSelect: (key: string) => void;
+  selectedKey: PresetKey | null;
+  onSelect: (key: PresetKey) => void;
   onApplyCustom?: (text: string) => void;
   className?: string;
 };
 
-const PRESET_LABELS: { key: PresetKey; label: string; desc?: string }[] = [
-  { key: "instagram", label: "Instagram-ready image", desc: "1080×1350, vibrant, crisp" },
-  { key: "ghibli", label: "Ghibli image", desc: "Soft pastels, painterly, whimsical" },
-  { key: "professional", label: "Professional image", desc: "Studio-quality, neutral bg" },
-  { key: "other", label: "Other (custom)", desc: "Append your own snippet" },
-];
+/* CHANGE: Use centralized typed preset registry.
+   Keep explicit order for a predictable UX. */
+const ORDER: PresetKey[] = ["instagram", "ghibli", "professional", "other"];
 
 export default function SidebarPresets({
   selectedKey,
@@ -34,10 +30,22 @@ export default function SidebarPresets({
   };
 
   return (
-    <aside className={["rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3", className].filter(Boolean).join(" ")}>
-      <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 px-2">Presets</h2>
+    <aside
+      className={[
+        "rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 px-2">
+        Presets
+      </h2>
       <div className="mt-2 grid gap-1">
-        {PRESET_LABELS.map(({ key, label, desc }) => {
+        {ORDER.map((key) => {
+          const p = PRESETS[key];
+          const label = p.label;
+          const desc = p.desc;
           const active = selectedKey === key;
           return (
             <button
@@ -46,12 +54,24 @@ export default function SidebarPresets({
               onClick={() => onSelect(key)}
               aria-pressed={active ? "true" : "false"}
               className={`w-full text-left px-3 py-2 rounded-md transition
-                ${active
-                  ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-                  : "text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-neutral-800/60"}`}
+                ${
+                  active
+                    ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+                    : "text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-neutral-800/60"
+                }`}
             >
               <div className="text-sm font-medium">{label}</div>
               {desc && <div className="text-xs opacity-80">{desc}</div>}
+              {key !== "other" && (
+                <div className="mt-1 flex gap-2 text-[10px] text-neutral-600 dark:text-neutral-400">
+                  <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
+                    {p.ratio}
+                  </span>
+                  <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
+                    {formatResolution(p)}
+                  </span>
+                </div>
+              )}
             </button>
           );
         })}
@@ -59,7 +79,10 @@ export default function SidebarPresets({
 
       {selectedKey === "other" && (
         <div className="mt-3">
-          <label htmlFor="custom-preset" className="block text-xs text-neutral-600 dark:text-neutral-400 mb-1">
+          <label
+            htmlFor="custom-preset"
+            className="block text-xs text-neutral-600 dark:text-neutral-400 mb-1"
+          >
             Custom snippet to append
           </label>
           <textarea
