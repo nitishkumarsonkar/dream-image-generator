@@ -95,3 +95,72 @@ body {
 @media (min-width: 768px) {
   .app-container { padding-left: 2rem; padding-right: 2rem; }
 }
+
+/* ImageUploader custom classes */
+.image-uploader {
+  @apply w-full;
+}
+
+.image-uploader-error {
+  @apply mt-3 text-sm text-red-600 dark:text-red-400;
+}
+
+.uploader-inner {
+  @apply space-y-3 w-[80%] mx-auto;
+}
+
+.preview-container {
+  @apply flex gap-2 overflow-x-auto h-20 w-full;
+}
+
+.preview-item {
+  @apply relative flex-shrink-0;
+}
+
+.preview-img {
+  @apply h-20 w-20 object-cover rounded-md border border-neutral-200 dark:border-neutral-700;
+}
+
+.preview-remove {
+  @apply absolute top-1 -right-1 bg-white dark:bg-neutral-800 rounded-full p-0.5 shadow border border-neutral-200 dark:border-neutral-700;
+}
+
+.remove-icon {
+  @apply text-xs leading-none;
+}
+
+.textarea-container {
+  @apply space-y-3;
+}
+
+.prompt-wrapper {
+  @apply flex-1 relative rounded-xl border border-neutral-300 bg-white dark:bg-neutral-900;
+}
+
+.prompt-textarea {
+  @apply w-full min-h-[60px] max-h-[240px] text-neutral-900 dark:text-neutral-100 mt-2 placeholder-neutral-400 dark:placeholder-neutral-500 dark:bg-neutral-900 px-4 py-3 pr-32 focus:outline-none focus:ring-0 resize-none;
+}
+
+.button-group {
+  @apply w-full h-10 flex;
+}
+
+.add-images-btn {
+  @apply absolute left-2 flex items-center gap-2 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm;
+}
+
+.aspect-ratio-btn {
+  @apply h-6 w-6 absolute right-16 flex rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 items-center justify-center transition-all duration-200 shadow-sm;
+}
+
+.settings-btn {
+  @apply h-6 w-6 absolute right-10 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center justify-center transition-all duration-200 shadow-sm;
+}
+
+.submit-btn {
+  @apply h-6 w-6 absolute right-2 rounded-md bg-black text-white flex items-center justify-center hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm;
+}
+
+.icon-svg {
+  @apply h-3 w-3;
+}

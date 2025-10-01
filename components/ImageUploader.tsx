@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 
 type ImageUploaderProps = {
   // Backwards-compatible single-file callback
@@ -11,16 +11,31 @@ type ImageUploaderProps = {
   maxSizeMB?: number;
   maxImages?: number; // New prop for max images limit
   isSubmitting?: boolean; // New prop to disable submit during loading
+  aspectLabel?: string; // UI badge text e.g. "4:5"
+  aspectTooltip?: string; // Hover text e.g. "1080×1350"
   presetAppend?: { text: string; nonce: number };
   className?: string;
 };
 
-function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubmitText, initialText, maxSizeMB = 5, maxImages = 5, isSubmitting = false, className, presetAppend }: ImageUploaderProps): JSX.Element {
+function ImageUploader({
+  onImageSelected,
+  onImagesSelected,
+  onTextChange,
+  onSubmitText,
+  initialText,
+  maxSizeMB = 5,
+  maxImages = 5,
+  isSubmitting = false,
+  aspectLabel,
+  aspectTooltip,
+  className,
+  presetAppend,
+}: ImageUploaderProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [text, setText] = useState<string>(initialText ?? '');
+  const [text, setText] = useState<string>(initialText ?? "");
 
   useEffect(() => {
     return () => {
@@ -54,21 +69,23 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
 
     // Check against total limit before processing
     if (files.length + selected.length > maxImages) {
-      setError(`Maximum of ${maxImages} images allowed. You have ${files.length}; trying to add ${selected.length}.`);
-      e.target.value = '';
+      setError(
+        `Maximum of ${maxImages} images allowed. You have ${files.length}; trying to add ${selected.length}.`
+      );
+      e.target.value = "";
       return;
     }
 
     for (const f of selected) {
-      if (!f.type.startsWith('image/')) {
-        setError('Please select only image files (PNG, JPG, GIF, etc.).');
-        e.target.value = '';
+      if (!f.type.startsWith("image/")) {
+        setError("Please select only image files (PNG, JPG, GIF, etc.).");
+        e.target.value = "";
         return;
       }
 
       if (f.size > maxBytes) {
         setError(`Each image must be ≤ ${maxSizeMB}MB.`);
-        e.target.value = '';
+        e.target.value = "";
         return;
       }
 
@@ -97,7 +114,7 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
     previewUrls.forEach((u) => URL.revokeObjectURL(u));
     setPreviewUrls([]);
     setFiles([]);
-    if (inputRef.current) inputRef.current.value = '';
+    if (inputRef.current) inputRef.current.value = "";
   };
 
   const handleRemoveAt = (index: number) => {
@@ -116,15 +133,15 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
     const value = e.target.value;
     setText(value);
     onTextChange?.(value);
-    
+
     // Auto-resize textarea
     const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 240) + 'px'; // Max 10 lines (24px per line * 10)
+    textarea.style.height = "auto";
+    textarea.style.height = Math.min(textarea.scrollHeight, 240) + "px"; // Max 10 lines (24px per line * 10)
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       const value = text.trim();
       if (!value || isSubmitting) return;
@@ -139,7 +156,7 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
   };
 
   return (
-    <div className={["w-full", className].filter(Boolean).join(" ")}>
+    <div className={`image-uploader ${className || ""}`}>
       <input
         ref={inputRef}
         id="image-input"
@@ -150,29 +167,30 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
         className="hidden"
       />
 
-
       {/* <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
         Max {maxImages} images, {maxSizeMB}MB each. Supported: PNG, JPG, GIF, etc. You have selected {previewUrls.length}/{maxImages}.
       </p> */}
 
       {error && (
-        <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
+        <p role="alert" className="image-uploader-error">
+          {error}
+        </p>
       )}
 
-      <div className="space-y-3 w-[80%] mx-auto">
+      <div className="uploader-inner">
         {/* Image previews */}
         {previewUrls.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto h-20 w-100%">
+          <div className="preview-container">
             {previewUrls.map((url, idx) => (
-              <div key={url} className="relative flex-shrink-0">
-                <img src={url} alt={`preview-${idx}`} className="h-20 w-20 object-cover rounded-md border border-neutral-200 dark:border-neutral-700" />
+              <div key={url} className="preview-item">
+                <img src={url} alt={`preview-${idx}`} className="preview-img" />
                 <button
                   type="button"
                   onClick={() => handleRemoveAt(idx)}
-                  className="absolute top-1 -right-1 bg-white dark:bg-neutral-800 rounded-full p-0.5 shadow border border-neutral-200 dark:border-neutral-700"
+                  className="preview-remove"
                   aria-label={`Remove image ${idx + 1}`}
                 >
-                  <span className="text-xs leading-none">✕</span>
+                  <span className="remove-icon">✕</span>
                 </button>
               </div>
             ))}
@@ -180,47 +198,49 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
         )}
 
         {/* Textarea with action buttons */}
-        <div className="space-y-3" >
-          <div className="flex-1 relative rounded-xl border border-neutral-300 bg-white dark:bg-neutral-900">
+        <div className="textarea-container">
+          <div className="prompt-wrapper">
             <textarea
               id="image-prompt"
               value={text}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
               placeholder="Describe your idea or roll the dice for prompt ideas"
-              className="w-full min-h-[60px] max-h-[240px] text-neutral-900 dark:text-neutral-100 mt-2 placeholder-neutral-400 dark:placeholder-neutral-500 dark:bg-neutral-900 px-4 py-3 pr-32 focus:outline-none focus:ring-0 resize-none"
-              style={{ height: 'auto' }}
+              className="prompt-textarea"
+              style={{ height: "auto" }}
             />
 
-
             {/* Icon buttons group inside textarea */}
-            <div className=" w-full h-10 flex">
-               {/* Main action button inside textarea */}
-            <button
-              type="button"
-              onClick={handleOpenPicker}
-              disabled={previewUrls.length >= maxImages || isSubmitting}
-              className="absolute left-2 flex items-center gap-2 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="h-3 w-3"
+            <div className="button-group">
+              {/* Main action button inside textarea */}
+              <button
+                type="button"
+                onClick={handleOpenPicker}
+                disabled={previewUrls.length >= maxImages || isSubmitting}
+                className="add-images-btn"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h14M12 5l7 7-7 7" />
-              </svg>
-              <span className="text-xs font-medium">Add Images</span>
-            </button>
-            
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="icon-svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 12h14M12 5l7 7-7 7"
+                  />
+                </svg>
+                <span className="text-xs font-medium">Add Images</span>
+              </button>
+
               {/* Aspect ratio button */}
               <button
                 type="button"
-                className="h-6 w-6 absolute right-16 flex rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center justify-center transition-all duration-200 shadow-sm"
-                title="Aspect ratio"
-                
+                className="aspect-ratio-btn"
+                title={aspectTooltip || "Aspect ratio"}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -228,38 +248,39 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="h-3 w-3"
+                  className="icon-svg"
                 >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <path d="M9 9h6v6H9z"/>
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <path d="M9 9h6v6H9z" />
                 </svg>
+                {aspectLabel && (
+                  <span className="text-[10px] ml-1 opacity-80">
+                    {aspectLabel}
+                  </span>
+                )}
               </button>
 
               {/* Settings button */}
-              <button
-                type="button"
-                className="h-6 w-6 absolute right-10 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center justify-center transition-all duration-200 shadow-sm"
-                title="Settings"
-              >
+              <button type="button" className="settings-btn" title="Settings">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="h-3 w-3"
+                  className="icon-svg"
                 >
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                 </svg>
               </button>
 
               {/* Submit button */}
-              <button 
+              <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={!text.trim() || isSubmitting}
-                className="h-6 w-6 absolute right-2 rounded-md bg-black text-white flex items-center justify-center hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                className="submit-btn"
                 title="Submit prompt"
               >
                 <svg
@@ -268,9 +289,13 @@ function ImageUploader({ onImageSelected, onImagesSelected, onTextChange, onSubm
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="h-3 w-3"
+                  className="icon-svg"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h14M12 5l7 7-7 7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 12h14M12 5l7 7-7 7"
+                  />
                 </svg>
               </button>
             </div>

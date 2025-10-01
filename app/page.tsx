@@ -1,24 +1,30 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ImageUploader from "../components/ImageUploader";
 import SidebarPresets from "../components/SidebarPresets";
+import { PRESETS, PresetKey, formatResolution } from "../lib/presets";
+import {
+  readPromptHistory,
+  addPromptToHistory,
+  clearPromptHistory,
+} from "../lib/promptHistory";
+import {
+  copyDataUrlToClipboard,
+  inferExtFromDataUrl,
+  nowTs,
+} from "../lib/share";
 
 export default function HomePage() {
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<PresetKey | null>(null);
   const [customPreset, setCustomPreset] = useState<string>("");
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const PRESET_MAP: Record<string, string> = {
-    instagram:
-      "Create an Instagram-ready vertical image (1080x1350). High contrast, vibrant colors, crisp details, minimal background, subtle grain. Export as PNG.",
-    ghibli:
-      "Render in a Studio Ghibli-inspired style: soft pastels, painterly textures, warm sunlight, whimsical mood, gentle outlines, detailed nature background.",
-    professional:
-      "Create a professional studio-quality product photo. Neutral background, soft diffused lighting, high dynamic range, sharp focus, realistic color, 4k detail.",
-  };
+  // CHANGE: Replaced inline preset map with centralized PRESETS registry (lib/presets).
+  // Use PRESETS[key].promptTemplate, ratio, and resolution across the app.
 
-  function handlePresetSelect(key: string) {
+  // Typed preset key to align with registry and SidebarPresets
+  function handlePresetSelect(key: PresetKey) {
     setSelectedPreset(key);
     if (key !== "other") setCustomPreset("");
     setMobileOpen(false);
@@ -41,6 +47,17 @@ export default function HomePage() {
     useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+
+  // Prompt history state + append bridge into the input component
+  const [promptHistory, setPromptHistory] = useState<string[]>([]);
+  const [presetAppend, setPresetAppend] = useState<
+    { text: string; nonce: number } | undefined
+  >(undefined);
+
+  // Load history on mount (client only)
+  useEffect(() => {
+    setPromptHistory(readPromptHistory());
+  }, []);
 
   // Function to generate response using Gemini API
   const generateGeminiResponse = async (
@@ -145,12 +162,15 @@ export default function HomePage() {
       if (!userPrompt) {
         throw new Error("Please enter some text before generating a response");
       }
+      // Add to local history (de-duped, capped)
+      setPromptHistory(addPromptToHistory(userPrompt));
 
+      // Append preset template (or custom) to user's prompt at submit time.
       let append = "";
       if (selectedPreset === "other" && customPreset.trim()) {
         append = customPreset.trim();
-      } else if (selectedPreset && PRESET_MAP[selectedPreset]) {
-        append = PRESET_MAP[selectedPreset];
+      } else if (selectedPreset) {
+        append = PRESETS[selectedPreset].promptTemplate;
       }
       const finalPrompt = append ? `${userPrompt}\n\n${append}` : userPrompt;
 
@@ -190,6 +210,94 @@ export default function HomePage() {
     }
   };
 
+  // Preset UI badges for the input component (ratio + resolution tooltip)
+  const aspectLabel =
+    selectedPreset && selectedPreset !== "other"
+      ? PRESETS[selectedPreset].ratio
+      : undefined;
+  const aspectTooltip =
+    selectedPreset && selectedPreset !== "other"
+      ? formatResolution(PRESETS[selectedPreset])
+      : undefined;
+
+  // Share helpers: toasts, alt text, filename and copy actions
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
+    msg: string;
+  } | null>(null);
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    window.setTimeout(() => setToast(null), 2500);
+  };
+
+  const truncate = (s: string, max = 160) =>
+    s.length > max ? s.slice(0, max - 1) + "…" : s;
+
+  const makeAlt = (idx: number) => {
+    const base = (savedNotes || "").trim() || "AI-generated image";
+    const presetLabel = selectedPreset
+      ? ` (${PRESETS[selectedPreset].label})`
+      : "";
+    return `Generated image ${idx + 1} — ${truncate(base)}${presetLabel}`;
+  };
+
+  const computeFilename = (dataUrl?: string) => {
+    if (!dataUrl) return `dig-image-${nowTs()}.png`;
+    const ext = inferExtFromDataUrl(dataUrl);
+    const presetId = selectedPreset || "custom";
+    const sizeTag = selectedPreset
+      ? `${PRESETS[selectedPreset].width}x${PRESETS[selectedPreset].height}`
+      : "auto";
+    return `dig-${presetId}-${sizeTag}-${nowTs()}.${ext}`;
+  };
+
+  const copyImage = async (dataUrl?: string) => {
+    try {
+      if (!dataUrl) throw new Error("No image to copy");
+      await copyDataUrlToClipboard(dataUrl);
+      showToast("Image copied to clipboard");
+    } catch (e: any) {
+      showToast(e?.message || "Copy image failed", "error");
+    }
+  };
+
+  const copyCaption = async () => {
+    const t = (savedNotes || "").trim();
+    if (!t) return;
+    try {
+      await navigator.clipboard.writeText(t);
+      showToast("Caption copied");
+    } catch {
+      showToast("Copy caption failed", "error");
+    }
+  };
+
+  // Empty state: no results yet and nothing submitted
+  const showEmpty =
+    !isLoading && generatedImages.length === 0 && !submittedNotes;
+
+  // Example prompts to help first-time users
+  const examplePrompts = [
+    "A serene mountain lake at golden hour, ultra-detailed, 4k",
+    "Minimalist product shot of a smartwatch on marble, studio lighting",
+    "Cute robot mascot waving on a gradient background, flat vector",
+    "Cyberpunk city street in the rain, neon reflections, cinematic",
+  ];
+
+  // Insert a prompt into the input (uses ImageUploader presetAppend bridge)
+  const insertPrompt = (txt: string) => {
+    const t = txt.trim();
+    if (!t) return;
+    setPresetAppend({ text: t, nonce: Date.now() });
+  };
+
+  // Immediately run a prompt without inserting first
+  const runPrompt = (txt: string) => {
+    const t = txt.trim();
+    if (!t) return;
+    void handleSave(t);
+  };
+
   return (
     <>
       {/* Desktop fixed sidebar */}
@@ -223,7 +331,9 @@ export default function HomePage() {
         </div>
       )}
 
-      <main className="h-screen pt-16 md:ml-64 flex flex-col"> {/* Fixed height with flex layout */}
+      <main className="h-screen pt-16 md:ml-64 flex flex-col">
+        {" "}
+        {/* Fixed height with flex layout */}
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto">
           <div className="app-container px-6 py-16">
@@ -257,23 +367,113 @@ export default function HomePage() {
                   </button>
 
                   <div>
-                    <h1 className="text-3xl font-semibold tracking-tight">
-                      Generate Your Dream Image
-                    </h1>
-                    <p className="text-neutral-600 dark:text-neutral-400 mt-2">
-                      Select an image to see a live preview instantly. Supported
-                      formats: PNG, JPG, GIF, etc.
-                    </p>
                     {selectedPreset && (
-                      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                        Preset will be appended internally on submit
-                        {selectedPreset === "other" ? ": custom snippet" : ""}.
-                      </p>
+                      <>
+                        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                          Preset will be appended internally on submit
+                          {selectedPreset === "other" ? ": custom snippet" : ""}
+                          .
+                        </p>
+                        {selectedPreset !== "other" && (
+                          <div className="mt-2 flex gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+                            <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
+                              {PRESETS[selectedPreset].ratio}
+                            </span>
+                            <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
+                              {formatResolution(PRESETS[selectedPreset])}
+                            </span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
               </header>
 
+              {showEmpty && (
+                <div className="mt-4 p-4 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-sm">
+                  <h3 className="text-lg font-semibold">Get started</h3>
+                  <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+                    Enter a description, optionally add up to 5 images (≤5MB
+                    each), then submit.
+                  </p>
+
+                  <div className="mt-3">
+                    <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
+                      Example prompts
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {examplePrompts.map((p, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className="px-2.5 py-1.5 rounded-md border border-neutral-200 dark:border-neutral-700 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
+                          onClick={() => insertPrompt(p)}
+                          title="Insert into prompt"
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                        Recent prompts
+                      </div>
+                      <button
+                        type="button"
+                        className="text-xs text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 underline-offset-2 hover:underline disabled:opacity-50"
+                        onClick={() => {
+                          clearPromptHistory();
+                          setPromptHistory([]);
+                        }}
+                        disabled={promptHistory.length === 0}
+                      >
+                        Clear history
+                      </button>
+                    </div>
+                    {promptHistory.length === 0 ? (
+                      <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                        No prompts yet. Your recent prompts will appear here
+                        after you generate.
+                      </p>
+                    ) : (
+                      <ul className="mt-2 grid gap-2">
+                        {promptHistory.map((h, idx) => (
+                          <li
+                            key={idx}
+                            className="group flex items-start justify-between gap-3 rounded-md border border-neutral-200 dark:border-neutral-700 p-2"
+                          >
+                            <span className="text-sm text-neutral-700 dark:text-neutral-200 line-clamp-2">
+                              {h}
+                            </span>
+                            <div className="shrink-0 flex gap-1">
+                              <button
+                                type="button"
+                                className="px-2 py-1 text-xs rounded-md border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
+                                onClick={() => insertPrompt(h)}
+                                title="Use"
+                              >
+                                Use
+                              </button>
+                              <button
+                                type="button"
+                                className="px-2 py-1 text-xs rounded-md bg-black text-white dark:bg-white dark:text-black"
+                                onClick={() => runPrompt(h)}
+                                title="Run"
+                              >
+                                Run
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {savedNotes && (
                 <div className="mt-4 text-sm text-neutral-700 dark:text-neutral-200">
@@ -351,7 +551,7 @@ export default function HomePage() {
                       <div className="rounded-md bg-black/5 dark:bg-white/5 p-4 flex items-center justify-center">
                         <img
                           src={generatedImages[selectedGeneratedIndex]}
-                          alt={`generated-${selectedGeneratedIndex}`}
+                          alt={makeAlt(selectedGeneratedIndex)}
                           className="max-h-[480px] w-full object-contain rounded-md"
                         />
                       </div>
@@ -370,7 +570,7 @@ export default function HomePage() {
                           >
                             <img
                               src={src}
-                              alt={`thumb-${i}`}
+                              alt={makeAlt(i)}
                               className="h-20 w-20 object-cover"
                             />
                           </button>
@@ -386,8 +586,29 @@ export default function HomePage() {
                         >
                           Open in new tab
                         </a>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            copyImage(generatedImages[selectedGeneratedIndex])
+                          }
+                          className="px-3 py-2 rounded-md border bg-white dark:border-neutral-700 dark:bg-neutral-900"
+                          aria-label="Copy generated image to clipboard"
+                        >
+                          Copy image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={copyCaption}
+                          disabled={!savedNotes.trim()}
+                          className="px-3 py-2 rounded-md border bg-white disabled:opacity-50 disabled:cursor-not-allowed dark:border-neutral-700 dark:bg-neutral-900"
+                          aria-label="Copy caption text"
+                        >
+                          Copy caption
+                        </button>
                         <a
-                          download={`generated-${selectedGeneratedIndex}.png`}
+                          download={computeFilename(
+                            generatedImages[selectedGeneratedIndex]
+                          )}
                           href={generatedImages[selectedGeneratedIndex]}
                           className="px-3 py-2 rounded-md bg-black text-white"
                         >
@@ -401,7 +622,6 @@ export default function HomePage() {
             </section>
           </div>
         </div>
-
         {/* Fixed textarea at bottom */}
         <div className="p-4">
           <ImageUploader
@@ -411,9 +631,25 @@ export default function HomePage() {
             isSubmitting={isLoading}
             maxImages={5}
             maxSizeMB={5}
+            aspectLabel={aspectLabel}
+            aspectTooltip={aspectTooltip}
+            presetAppend={presetAppend}
           />
         </div>
       </main>
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed bottom-4 right-4 z-[100] rounded-md px-3 py-2 text-sm shadow-lg border ${
+            toast.type === "success"
+              ? "bg-white text-neutral-800 border-neutral-200 dark:bg-neutral-900 dark:text-neutral-100 dark:border-neutral-700"
+              : "bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800"
+          }`}
+        >
+          {toast.msg}
+        </div>
+      )}
     </>
   );
 }
