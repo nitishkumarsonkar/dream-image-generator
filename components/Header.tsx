@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
+import { getCurrentUser } from "@/utils/supabase/auth/user";
+import { signOut } from "@/utils/supabase/auth/sign-out";
+import { User } from "@supabase/supabase-js";
 
 type NavItem = { name: string; href: string };
 
 const navItems: NavItem[] = [
   { name: "Home", href: "/" },
   { name: "About Us", href: "/about" },
-  { name: "Sign in", href: "/sign-in" },
+  { name: "Prompt Library", href: "/prompt-library" },
 ];
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
@@ -32,7 +35,35 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 
 export default function Header(): JSX.Element {
   const pathname = usePathname() || "/";
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUser();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setUser(null);
+      router.push('/sign-in');
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  };
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -62,8 +93,33 @@ export default function Header(): JSX.Element {
             </nav>
           </div>
 
-          {/* Right: Theme toggle (desktop) + Mobile Menu Button */}
+          {/* Right: User menu + Theme toggle + Mobile Menu Button */}
           <div className="flex items-center gap-2">
+            {!loading && (
+              <>
+                {user ? (
+                  <div className="hidden md:flex items-center gap-3">
+                    <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                      {user.email}
+                    </span>
+                    <button
+                      onClick={handleSignOut}
+                      className="px-3 py-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-neutral-800/60 rounded-md"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href="/sign-in"
+                    className="hidden md:block px-3 py-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-neutral-800/60 rounded-md"
+                  >
+                    Sign in
+                  </Link>
+                )}
+              </>
+            )}
+            
             <div className="hidden md:block">
               <ThemeToggle />
             </div>
@@ -109,6 +165,34 @@ export default function Header(): JSX.Element {
             <div className="flex items-center justify-between">
               <ThemeToggle />
             </div>
+            
+            {/* Mobile user menu */}
+            {!loading && (
+              <div className="mt-3 mb-3">
+                {user ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                      {user.email}
+                    </span>
+                    <button
+                      onClick={handleSignOut}
+                      className="px-3 py-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-neutral-800/60 rounded-md"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href="/sign-in"
+                    className="block px-3 py-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-neutral-800/60 rounded-md"
+                    onClick={() => setOpen(false)}
+                  >
+                    Sign in
+                  </Link>
+                )}
+              </div>
+            )}
+            
             <nav className="mt-3 grid gap-1" aria-label="Mobile navigation">
               {navItems.map((item) => (
                 <Link
