@@ -11,6 +11,7 @@ type ImageUploaderProps = {
   maxSizeMB?: number;
   maxImages?: number; // New prop for max images limit
   isSubmitting?: boolean; // New prop to disable submit during loading
+  disabled?: boolean; // New prop to disable the entire component
   aspectLabel?: string; // UI badge text e.g. "4:5"
   aspectTooltip?: string; // Hover text e.g. "1080×1350"
   presetAppend?: { text: string; nonce: number };
@@ -26,6 +27,7 @@ function ImageUploader({
   maxSizeMB = 5,
   maxImages = 5,
   isSubmitting = false,
+  disabled = false,
   aspectLabel,
   aspectTooltip,
   className,
@@ -205,9 +207,10 @@ function ImageUploader({
               value={text}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
-              placeholder="Describe your idea or roll the dice for prompt ideas"
+              placeholder={disabled ? "Please sign in to generate images..." : "Describe your idea or roll the dice for prompt ideas"}
               className="prompt-textarea"
               style={{ height: "auto" }}
+              disabled={disabled}
             />
 
             {/* Icon buttons group inside textarea */}
@@ -216,8 +219,9 @@ function ImageUploader({
               <button
                 type="button"
                 onClick={handleOpenPicker}
-                disabled={previewUrls.length >= maxImages || isSubmitting}
+                disabled={previewUrls.length >= maxImages || isSubmitting || disabled}
                 className="add-images-btn"
+                title={disabled ? "Please sign in to upload images" : "Add images"}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -279,9 +283,9 @@ function ImageUploader({
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={!text.trim() || isSubmitting}
+                disabled={!text.trim() || isSubmitting || disabled}
                 className="submit-btn"
-                title="Submit prompt"
+                title={disabled ? "Please sign in to generate images" : "Submit prompt"}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

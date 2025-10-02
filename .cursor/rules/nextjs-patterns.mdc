@@ -1,0 +1,34 @@
+---
+globs: app/**/*.tsx,app/**/*.ts
+---
+
+# Next.js App Router Patterns
+
+## Page Components
+- Export default async functions for server components
+- Use proper data fetching with Supabase
+- Handle loading and error states appropriately
+
+## API Routes
+- Place in `app/api/[route]/route.ts`
+- Export named functions: `GET`, `POST`, `PUT`, `DELETE`
+- Use proper HTTP status codes
+- Handle errors with try/catch blocks
+
+## Component Structure
+- Use TypeScript interfaces for props
+- Implement proper error boundaries
+- Follow React Server Component patterns
+- Use client components only when necessary (add "use client" directive)
+
+## Example Server Component Pattern:
+```typescript
+export default async function PageName() {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('table').select()
+  
+  if (error) return <div>Error: {error.message}</div>
+  
+  return <div>{/* render data */}</div>
+}
+```

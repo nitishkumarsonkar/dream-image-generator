@@ -1,0 +1,22 @@
+---
+globs: *.ts,*.tsx
+---
+
+# TypeScript Conventions
+
+## Import Paths
+- Always use `@/` prefix for project root imports
+- Example: `import { createClient } from '@/utils/supabase/server'`
+- For relative imports, use explicit relative paths: `../../utils/supabase/server`
+
+## TypeScript Configuration
+- Target: ES2020
+- Module resolution: bundler
+- Strict mode enabled
+- Use semicolons consistently
+- Prefer explicit typing over `any`
+
+## Next.js Specific
+- Use `async` for server components that need data fetching
+- Export default functions for page components
+- Use proper Next.js API route structure in `app/api/`
