@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import ImageUploader from "../components/ImageUploader";
 import SidebarPresets from "../components/SidebarPresets";
+import { getCurrentUser } from "@/utils/supabase/auth/user";
+import { User } from "@supabase/supabase-js";
 import { PRESETS, PresetKey, formatResolution } from "../lib/presets";
 import {
   readPromptHistory,
@@ -19,6 +21,8 @@ export default function HomePage() {
   const [selectedPreset, setSelectedPreset] = useState<PresetKey | null>(null);
   const [customPreset, setCustomPreset] = useState<string>("");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // CHANGE: Replaced inline preset map with centralized PRESETS registry (lib/presets).
   // Use PRESETS[key].promptTemplate, ratio, and resolution across the app.
@@ -57,6 +61,22 @@ export default function HomePage() {
   // Load history on mount (client only)
   useEffect(() => {
     setPromptHistory(readPromptHistory());
+  }, []);
+
+  // Load user on mount
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Failed to load user:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
   }, []);
 
   // Function to generate response using Gemini API
@@ -147,6 +167,12 @@ export default function HomePage() {
 
   // Handler for when the user submits their input
   const handleSave = async (t: string) => {
+    // Check if user is authenticated
+    if (!user) {
+      setError("Please sign in to generate images");
+      return;
+    }
+
     setSavedNotes(t);
     setIsLoading(true);
     setError("");
@@ -298,6 +324,18 @@ export default function HomePage() {
     void handleSave(t);
   };
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Desktop fixed sidebar */}
@@ -390,7 +428,24 @@ export default function HomePage() {
                 </div>
               </header>
 
-              {showEmpty && (
+              {!user && (
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800 shadow-sm">
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Sign in to generate images</h3>
+                  <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                    You need to be signed in to generate images. You can browse the site freely, but authentication is required for image generation.
+                  </p>
+                  <div className="mt-3">
+                    <a
+                      href="/sign-in"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+                    >
+                      Sign In
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {showEmpty && user && (
                 <div className="mt-4 p-4 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-800 shadow-sm">
                   <h3 className="text-lg font-semibold">Get started</h3>
                   <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
@@ -634,6 +689,7 @@ export default function HomePage() {
             aspectLabel={aspectLabel}
             aspectTooltip={aspectTooltip}
             presetAppend={presetAppend}
+            disabled={!user}
           />
         </div>
       </main>

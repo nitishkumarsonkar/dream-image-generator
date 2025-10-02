@@ -1,0 +1,32 @@
+---
+description: Supabase integration patterns and utilities
+---
+
+# Supabase Integration
+
+## Server Client Setup
+The Supabase server client is configured in [app/utils/supabase/server.ts](mdc:app/utils/supabase/server.ts):
+
+```typescript
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export async function createClient() {
+  const cookieStore = await cookies()
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    { cookies: { getAll, setAll } }
+  )
+}
+```
+
+## Usage Patterns
+- Always use `await createClient()` in server components
+- Import with: `import { createClient } from '@/utils/supabase/server'`
+- Handle errors gracefully in database operations
+- Use proper TypeScript types for database responses
+
+## Environment Variables Required
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`

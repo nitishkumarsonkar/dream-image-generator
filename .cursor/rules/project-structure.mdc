@@ -1,0 +1,26 @@
+---
+alwaysApply: true
+---
+
+# Dream Image Generator - Project Structure
+
+This is a Next.js 14 TypeScript project for AI image generation using Google's Gemini API.
+
+## Key Directories
+- `app/` - Next.js App Router pages and API routes
+- `components/` - Reusable React components
+- `lib/` - Utility libraries and configurations
+- `utils/` - Utility functions and external service integrations
+- `memory-bank/` - Project documentation and context
+
+## Important Files
+- [app/page.tsx](mdc:app/page.tsx) - Main homepage
+- [app/api/generate/route.ts](mdc:app/api/generate/route.ts) - Image generation API endpoint
+- [components/ImageUploader.tsx](mdc:components/ImageUploader.tsx) - Main image upload component
+- [components/Header.tsx](mdc:components/Header.tsx) - Navigation header
+- [lib/presets.ts](mdc:lib/presets.ts) - Image generation presets
+- [utils/supabase/server.ts](mdc:app/utils/supabase/server.ts) - Supabase server client
+
+## Path Aliases
+- Use `@/` prefix for imports from project root
+- Example: `import { createClient } from '@/utils/supabase/server'`

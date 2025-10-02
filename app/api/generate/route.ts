@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import { createClient } from '@/utils/supabase/server';
+import { decode } from 'base64-arraybuffer';
 
 type PartOut = { type: 'text'; text: string } | { type: 'image'; mimeType: string; data: string };
+
+const BUCKET_NAME = 'generation_images';
 
 // Note: Route Handlers in the app router don't support the `config` export used by
 // pages/api to increase bodyParser size. When sending large payloads, prefer
@@ -11,6 +15,9 @@ type PartOut = { type: 'text'; text: string } | { type: 'image'; mimeType: strin
 
 export async function POST(request: Request) {
   try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
     const apiKey = process.env.GENAI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!apiKey) {
       console.error('GENAI API key missing. Set GENAI_API_KEY in environment');
@@ -20,12 +27,12 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
 
-    const { prompt, images } = body as { prompt: string; images?: Array<{ mimeType: string; data: string }> };
+    const { prompt, images: inputImagesB64 } = body as { prompt: string; images?: Array<{ mimeType: string; data: string }> };
 
     const MAX_IMAGES = 5; // server-side hard limit
     const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
 
-    if (Array.isArray(images) && images.length > MAX_IMAGES) {
+    if (Array.isArray(inputImagesB64) && inputImagesB64.length > MAX_IMAGES) {
       return NextResponse.json({ error: `Too many images. Maximum allowed is ${MAX_IMAGES}` }, { status: 400 });
     }
 
@@ -36,8 +43,8 @@ export async function POST(request: Request) {
     const ai = new GoogleGenAI({ apiKey });
 
     const contents: any[] = [];
-    if (Array.isArray(images)) {
-      for (const [idx, img] of images.entries()) {
+    if (Array.isArray(inputImagesB64)) {
+      for (const [idx, img] of inputImagesB64.entries()) {
         if (!img || !img.data) {
           console.warn(`Skipping invalid image at index ${idx}`);
           continue;
@@ -81,8 +88,70 @@ export async function POST(request: Request) {
       }
     }
 
+    // --- Save to Supabase (best effort) ---
+    if (user) {
+      try {
+        const outputImagesB64 = parts.filter(p => p.type === 'image');
+
+        // 1. Insert the main prompt record
+        const { data: promptData, error: promptError } = await supabase
+          .from('prompt')
+          .insert({ user_id: user.id, prompt_text: prompt })
+          .select()
+          .single();
+
+        if (promptError) throw promptError;
+
+        const newPromptId = promptData.id;
+        const imagesToInsert = [];
+
+        // 2. Upload and record input images
+        if (inputImagesB64) {
+          for (const img of inputImagesB64) {
+            const filePath = `${user.id}/${newPromptId}/input_${Date.now()}`;
+            const { data, error } = await supabase.storage
+              .from(BUCKET_NAME)
+              .upload(filePath, decode(img.data), { contentType: img.mimeType });
+            if (error) {
+              console.error('Error uploading input image:', error);
+              continue; // Skip this image
+            }
+            const { data: { publicUrl } } = supabase.storage.from(BUCKET_NAME).getPublicUrl(data.path);
+            imagesToInsert.push({ prompt_id: newPromptId, image_url: publicUrl, image_type: 'input' });
+          }
+        }
+
+        // 3. Upload and record output images
+        for (const img of outputImagesB64) {
+          const filePath = `${user.id}/${newPromptId}/output_${Date.now()}`;
+          const { data, error } = await supabase.storage
+            .from(BUCKET_NAME)
+            .upload(filePath, decode(img.data), { contentType: img.mimeType });
+          if (error) {
+            console.error('Error uploading output image:', error);
+            continue; // Skip this image
+          }
+          const { data: { publicUrl } } = supabase.storage.from(BUCKET_NAME).getPublicUrl(data.path);
+          imagesToInsert.push({ prompt_id: newPromptId, image_url: publicUrl, image_type: 'output' });
+        }
+
+        // 4. Batch insert all image records
+        if (imagesToInsert.length > 0) {
+          const { error: imagesError } = await supabase.from('prompt_images').insert(imagesToInsert);
+          if (imagesError) throw imagesError;
+        }
+
+        console.log(`Successfully saved generation ${newPromptId} for user ${user.id}`);
+
+      } catch (dbError) {
+        console.error('Failed to save generation to Supabase:', dbError);
+        // Do not block the user response for a DB error
+      }
+    }
+    // --- End of Supabase save ---
+
     return NextResponse.json({ parts, debug: { candidates: !!response.candidates } });
-  } catch (err: any) {
+  } catch (err: any) { 
     console.error('API generate unexpected error:', err);
     return NextResponse.json({ error: 'Unexpected server error', message: err?.message || String(err) }, { status: 500 });
   }
