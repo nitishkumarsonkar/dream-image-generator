@@ -43,6 +43,8 @@ export interface Database {
           prompt: string
           category: string | null
           is_public: boolean
+          source_prompt_id: string | null
+          like_count: number
           created_at: string
           updated_at: string
         }
@@ -53,6 +55,8 @@ export interface Database {
           prompt: string
           category?: string | null
           is_public?: boolean
+          source_prompt_id?: string | null
+          like_count?: number
           created_at?: string
           updated_at?: string
         }
@@ -63,8 +67,30 @@ export interface Database {
           prompt?: string
           category?: string | null
           is_public?: boolean
+          source_prompt_id?: string | null
+          like_count?: number
           created_at?: string
           updated_at?: string
+        }
+      }
+      prompt_library_likes: {
+        Row: {
+          id: string
+          user_id: string
+          prompt_library_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          prompt_library_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          prompt_library_id?: string
+          created_at?: string
         }
       }
       instruments: {
