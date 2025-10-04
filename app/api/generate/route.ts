@@ -5,9 +5,9 @@ import { decode } from 'base64-arraybuffer';
 
 type PartOut = { type: 'text'; text: string } | { type: 'image'; mimeType: string; data: string };
 
-const BUCKET_NAME = 'generation_images';
+const BUCKET_NAME = 'prompts-pic';
 
-// Note: Route Handlers in the app router don't support the `config` export used by
+// Note: Route Handlers in the app router don't support the `config` npmexport used by
 // pages/api to increase bodyParser size. When sending large payloads, prefer
 // uploading to storage and sending URLs, or configure your hosting platform
 // to accept larger request bodies. This handler will still accept typical
@@ -27,7 +27,12 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
 
-    const { prompt, images: inputImagesB64 } = body as { prompt: string; images?: Array<{ mimeType: string; data: string }> };
+    const { prompt, images: inputImagesB64, folderPrefix, aspectRatio } = body as {
+      prompt: string;
+      images?: Array<{ mimeType: string; data: string }>;
+      folderPrefix?: string; // optional custom prefix, supports {userId} and {promptId}
+      aspectRatio?: string; // aspect ratio for image generation
+    };
 
     const MAX_IMAGES = 5; // server-side hard limit
     const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -59,13 +64,21 @@ export async function POST(request: Request) {
 
     contents.push({ text: prompt });
 
-    console.log('Calling GoogleGenAI.generateContent', { model: 'gemini-2.5-flash-image-preview', parts: contents.length });
+    console.log('Calling GoogleGenAI.generateContent', { model: 'gemini-2.5-flash-image', parts: contents.length, aspectRatio });
 
     let response: any;
     try {
+      const config: any = {};
+      if (aspectRatio) {
+        config.imageConfig = {
+          aspectRatio: aspectRatio
+        };
+      }
+      
       response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image-preview',
+        model: 'gemini-2.5-flash-image',
         contents,
+        config
       });
     } catch (callErr: any) {
       console.error('generateContent call failed:', callErr);
@@ -105,10 +118,29 @@ export async function POST(request: Request) {
         const newPromptId = promptData.id;
         const imagesToInsert = [];
 
+        // Helper to map MIME type to file extension
+        const extFromMime = (mime?: string) => {
+          const m = (mime || '').toLowerCase();
+          if (m.includes('png')) return 'png';
+          if (m.includes('jpeg')) return 'jpg';
+          if (m.includes('jpg')) return 'jpg';
+          if (m.includes('webp')) return 'webp';
+          if (m.includes('gif')) return 'gif';
+          if (m.includes('bmp')) return 'bmp';
+          if (m.includes('tiff')) return 'tiff';
+          return 'png';
+        };
+
+        // Resolve folder prefix, allow placeholders for user/prompt
+        const resolvedBasePrefix = (folderPrefix && typeof folderPrefix === 'string' && folderPrefix.trim().length > 0)
+          ? folderPrefix.replace('{userId}', user.id).replace('{promptId}', newPromptId)
+          : `${user.id}/${newPromptId}`;
+
         // 2. Upload and record input images
         if (inputImagesB64) {
           for (const img of inputImagesB64) {
-            const filePath = `${user.id}/${newPromptId}/input_${Date.now()}`;
+            const ext = extFromMime(img.mimeType);
+            const filePath = `${resolvedBasePrefix}/input_${Date.now()}.${ext}`;
             const { data, error } = await supabase.storage
               .from(BUCKET_NAME)
               .upload(filePath, decode(img.data), { contentType: img.mimeType });
@@ -123,7 +155,8 @@ export async function POST(request: Request) {
 
         // 3. Upload and record output images
         for (const img of outputImagesB64) {
-          const filePath = `${user.id}/${newPromptId}/output_${Date.now()}`;
+          const ext = extFromMime(img.mimeType);
+          const filePath = `${resolvedBasePrefix}/output_${Date.now()}.${ext}`;
           const { data, error } = await supabase.storage
             .from(BUCKET_NAME)
             .upload(filePath, decode(img.data), { contentType: img.mimeType });
