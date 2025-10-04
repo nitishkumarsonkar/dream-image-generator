@@ -111,6 +111,15 @@ export default function SidebarPresets({
           </div>
         </div>
       )}
+
+      <div className="mt-4 pt-3 border-t border-neutral-200 dark:border-neutral-800">
+        <a
+          href="/history"
+          className="w-full inline-flex items-center justify-center px-3 py-2 rounded-md border border-neutral-200 dark:border-neutral-700 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
+        >
+          History
+        </a>
+      </div>
     </aside>
   );
 }
