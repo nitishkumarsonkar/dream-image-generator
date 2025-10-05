@@ -52,7 +52,6 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [aspectRatio, setAspectRatio] = useState<string>("16:9");
-  const [showAspectRatioPopup, setShowAspectRatioPopup] = useState<boolean>(false);
 
   // Prompt history state + append bridge into the input component
   const [promptHistory, setPromptHistory] = useState<string[]>([]);
@@ -65,21 +64,6 @@ export default function HomePage() {
     setPromptHistory(readPromptHistory());
   }, []);
 
-  // Close aspect ratio popup when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showAspectRatioPopup) {
-        const target = event.target as Element;
-        if (!target.closest('[data-aspect-ratio-popup]')) {
-          setShowAspectRatioPopup(false);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showAspectRatioPopup]);
-
   // Load user on mount
   useEffect(() => {
     const loadUser = async () => {
@@ -87,7 +71,7 @@ export default function HomePage() {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
       } catch (error) {
-        console.error('Failed to load user:', error);
+        console.error("Failed to load user:", error);
       } finally {
         setLoading(false);
       }
@@ -347,7 +331,9 @@ export default function HomePage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading...</p>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Loading...
+          </p>
         </div>
       </div>
     );
@@ -427,81 +413,27 @@ export default function HomePage() {
                         <>
                           <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                             Preset will be appended internally on submit
-                            {selectedPreset === "other" ? ": custom snippet" : ""}
+                            {selectedPreset === "other"
+                              ? ": custom snippet"
+                              : ""}
                             .
                           </p>
-                        {selectedPreset !== "other" && (
+                          {selectedPreset !== "other" && (
+                            <div className="mt-2 flex gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+                              <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
+                                {PRESETS[selectedPreset].ratio}
+                              </span>
+                              <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
+                                {formatResolution(PRESETS[selectedPreset])}
+                              </span>
+                            </div>
+                          )}
                           <div className="mt-2 flex gap-2 text-xs text-neutral-600 dark:text-neutral-400">
                             <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
-                              {PRESETS[selectedPreset].ratio}
-                            </span>
-                            <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
-                              {formatResolution(PRESETS[selectedPreset])}
+                              Aspect: {aspectRatio}
                             </span>
                           </div>
-                        )}
-                        <div className="mt-2 flex gap-2 text-xs text-neutral-600 dark:text-neutral-400">
-                          <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
-                            Aspect: {aspectRatio}
-                          </span>
-                        </div>
                         </>
-                      )}
-                    </div>
-                    
-                    {/* Aspect Ratio Button */}
-                    <div className="relative" data-aspect-ratio-popup>
-                      <button
-                        type="button"
-                        onClick={() => setShowAspectRatioPopup(!showAspectRatioPopup)}
-                        className="inline-flex items-center justify-center rounded-md p-2 text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-700"
-                        aria-haspopup="dialog"
-                        aria-expanded={showAspectRatioPopup}
-                        title="Select aspect ratio"
-                      >
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-                        </svg>
-                      </button>
-                      
-                      {/* Aspect Ratio Popup */}
-                      {showAspectRatioPopup && (
-                        <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-lg z-50">
-                          <div className="p-3">
-                            <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2">Aspect Ratio</h3>
-                            <div className="grid grid-cols-2 gap-2">
-                              {[
-                                { value: "1:1", label: "Square (1:1)" },
-                                { value: "4:3", label: "Standard (4:3)" },
-                                { value: "16:9", label: "Widescreen (16:9)" },
-                                { value: "3:2", label: "Photo (3:2)" },
-                                { value: "21:9", label: "Ultrawide (21:9)" },
-                                { value: "9:16", label: "Portrait (9:16)" }
-                              ].map((ratio) => (
-                                <button
-                                  key={ratio.value}
-                                  type="button"
-                                  onClick={() => {
-                                    setAspectRatio(ratio.value);
-                                    setShowAspectRatioPopup(false);
-                                  }}
-                                  className={`px-3 py-2 text-xs rounded-md border transition-colors ${
-                                    aspectRatio === ratio.value
-                                      ? 'bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100'
-                                      : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-600 dark:hover:bg-neutral-700'
-                                  }`}
-                                >
-                                  {ratio.label}
-                                </button>
-                              ))}
-                            </div>
-                            <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
-                              <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                Current: {aspectRatio}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
                       )}
                     </div>
                   </div>
@@ -510,9 +442,13 @@ export default function HomePage() {
 
               {!user && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800 shadow-sm">
-                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Sign in to generate images</h3>
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+                    Sign in to generate images
+                  </h3>
                   <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                    You need to be signed in to generate images. You can browse the site freely, but authentication is required for image generation.
+                    You need to be signed in to generate images. You can browse
+                    the site freely, but authentication is required for image
+                    generation.
                   </p>
                   <div className="mt-3">
                     <a
@@ -769,6 +705,8 @@ export default function HomePage() {
             aspectLabel={aspectLabel}
             aspectTooltip={aspectTooltip}
             presetAppend={presetAppend}
+            aspectRatio={aspectRatio}
+            onChangeAspectRatio={setAspectRatio}
             disabled={!user}
           />
         </div>
