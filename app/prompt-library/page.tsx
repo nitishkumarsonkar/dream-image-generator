@@ -17,6 +17,7 @@ export default function PromptLibraryPage(): JSX.Element {
   const [category, setCategory] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [prompts, setPrompts] = useState<PromptLibrary[]>([]);
+  const [promptImages, setPromptImages] = useState<Record<string, { inputs: string[]; outputs: string[] }>>({});
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
@@ -65,6 +66,16 @@ export default function PromptLibraryPage(): JSX.Element {
         console.error('Failed to load prompts:', error);
       } else {
         setPrompts(data || []);
+        
+        // Load images for all prompts
+        const imagesMap: Record<string, { inputs: string[]; outputs: string[] }> = {};
+        await Promise.all((data || []).map(async (prompt) => {
+          const { data: promptData } = await getLibraryItemWithImages(prompt.id);
+          if (promptData?.images) {
+            imagesMap[prompt.id] = promptData.images;
+          }
+        }));
+        setPromptImages(imagesMap);
       }
     } catch (error) {
       console.error('Failed to load prompts:', error);
@@ -281,80 +292,86 @@ export default function PromptLibraryPage(): JSX.Element {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredPrompts.map((prompt) => (
               <article key={prompt.id} className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 flex flex-col cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleShowDetails(prompt)}>
-                <div className="flex items-start justify-between gap-3">
+                {promptImages[prompt.id]?.outputs?.length > 0 ? (
+                  <div className="relative h-48 w-full mb-3 overflow-hidden rounded-md">
+                    <img
+                      src={promptImages[prompt.id].outputs[0]}
+                      alt={`Generated image for ${prompt.title}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-48 w-full mb-3 flex items-center justify-center bg-neutral-50 dark:bg-neutral-800 rounded-md">
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">No image available</p>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium text-neutral-900 dark:text-neutral-100">{prompt.title}</h3>
                     <p className="text-xs text-neutral-500">
                       {new Date(prompt.created_at).toLocaleString()}
                     </p>
-                    {prompt.category && (
-                      <span className="inline-block mt-1 px-2 py-1 text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 rounded">
-                        {prompt.category}
-                      </span>
-                    )}
-                    {prompt.is_public && (
-                      <span className="inline-block mt-1 ml-1 px-2 py-1 text-xs bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded">
-                        Public
-                      </span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {prompt.category && (
+                        <span className="px-2 py-1 text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 rounded">
+                          {prompt.category}
+                        </span>
+                      )}
+                      {prompt.is_public && (
+                        <span className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 rounded">
+                          Public
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {user && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleLike(prompt.id);
+                          }}
+                          disabled={likingPrompt.has(prompt.id)}
+                          className={`flex items-center gap-1 p-2 rounded-full transition-colors ${
+                            likedIds.has(prompt.id)
+                              ? 'text-red-600 dark:text-red-400'
+                              : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill={likedIds.has(prompt.id) ? 'currentColor' : 'none'}
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
+                          </svg>
+                          <span className="text-xs">{prompt.like_count || 0}</span>
+                        </button>
+                        {user.id === prompt.user_id && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(prompt.id);
+                            }}
+                            className="p-2 text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full"
+                            aria-label={`Delete ${prompt.title}`}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
-                  {user && user.id === prompt.user_id && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(prompt.id);
-                      }}
-                      className="text-xs text-red-600 hover:underline"
-                      aria-label={`Delete ${prompt.title}`}
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-                <p className="mt-3 text-sm whitespace-pre-wrap text-neutral-700 dark:text-neutral-300 flex-1">
-                  {prompt.prompt}
-                </p>
-                <div className="mt-4 flex gap-2 items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUsePrompt(prompt.prompt);
-                    }}
-                    className="px-3 py-1 text-xs bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 rounded hover:opacity-90"
-                  >
-                    Use Prompt
-                  </button>
-                  
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleLike(prompt.id);
-                    }}
-                    disabled={likingPrompt.has(prompt.id)}
-                    className={`flex items-center gap-1 px-2 py-1 text-xs rounded border transition-colors ${
-                      likedIds.has(prompt.id)
-                        ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800'
-                        : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50 dark:bg-neutral-900 dark:text-neutral-400 dark:border-neutral-700 dark:hover:bg-neutral-800'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    <svg 
-                      className="w-3 h-3" 
-                      fill={likedIds.has(prompt.id) ? 'currentColor' : 'none'} 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={2} 
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
-                      />
-                    </svg>
-                    <span>{prompt.like_count || 0}</span>
-                  </button>
                 </div>
               </article>
             ))}
