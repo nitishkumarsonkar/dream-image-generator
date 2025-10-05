@@ -142,25 +142,19 @@ body {
 }
 
 .button-group {
-  @apply w-full h-10 flex;
+  @apply w-full flex flex-wrap items-center gap-2;
 }
 
 .add-images-btn {
-  @apply absolute left-2 flex items-center gap-2 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm;
+  @apply flex relative left-[20%] items-center px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm;
 }
 
 .aspect-ratio-btn {
-  @apply h-6 w-6 absolute right-16 flex rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 items-center justify-center transition-all duration-200 shadow-sm;
+  @apply h-6 w-6 flex rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 items-center justify-center transition-all duration-200 shadow-sm;
 }
 
-.settings-btn {
-  @apply h-6 w-6 absolute right-10 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 flex items-center justify-center transition-all duration-200 shadow-sm;
-}
-
-.submit-btn {
-  @apply h-6 w-6 absolute right-2 rounded-md bg-black text-white flex items-center justify-center hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm;
-}
 
 .icon-svg {
-  @apply h-3 w-3;
+  @apply h-6 w-5;
 }
+

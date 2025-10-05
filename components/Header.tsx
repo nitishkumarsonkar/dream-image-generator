@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
+import { SidebarToggleButton } from "./SidebarPresets";
 import { getCurrentUser } from "@/utils/supabase/auth/user";
 import { signOut } from "@/utils/supabase/auth/sign-out";
 import { User } from "@supabase/supabase-js";
@@ -46,7 +47,7 @@ export default function Header(): JSX.Element {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error("Auth check failed:", error);
       } finally {
         setLoading(false);
       }
@@ -59,9 +60,9 @@ export default function Header(): JSX.Element {
     try {
       await signOut();
       setUser(null);
-      router.push('/sign-in');
+      router.push("/sign-in");
     } catch (error) {
-      console.error('Sign out failed:', error);
+      console.error("Sign out failed:", error);
     }
   };
 
@@ -72,6 +73,7 @@ export default function Header(): JSX.Element {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm dark:bg-neutral-900/80">
+      <SidebarToggleButton />
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between">
           {/* Left: Brand + Desktop Nav */}
@@ -88,7 +90,11 @@ export default function Header(): JSX.Element {
               aria-label="Main navigation"
             >
               {navItems.map((item) => (
-                <NavLink key={item.href} item={item} active={isActive(item.href)} />
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isActive(item.href)}
+                />
               ))}
             </nav>
           </div>
@@ -119,7 +125,7 @@ export default function Header(): JSX.Element {
                 )}
               </>
             )}
-            
+
             <div className="hidden md:block">
               <ThemeToggle />
             </div>
@@ -165,7 +171,7 @@ export default function Header(): JSX.Element {
             <div className="flex items-center justify-between">
               <ThemeToggle />
             </div>
-            
+
             {/* Mobile user menu */}
             {!loading && (
               <div className="mt-3 mb-3">
@@ -192,7 +198,7 @@ export default function Header(): JSX.Element {
                 )}
               </div>
             )}
-            
+
             <nav className="mt-3 grid gap-1" aria-label="Mobile navigation">
               {navItems.map((item) => (
                 <Link

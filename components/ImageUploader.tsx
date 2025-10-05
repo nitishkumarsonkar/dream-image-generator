@@ -14,6 +14,8 @@ type ImageUploaderProps = {
   disabled?: boolean; // New prop to disable the entire component
   aspectLabel?: string; // UI badge text e.g. "4:5"
   aspectTooltip?: string; // Hover text e.g. "1080×1350"
+  aspectRatio?: string; // current aspect ratio (e.g., "16:9")
+  onChangeAspectRatio?: (ratio: string) => void;
   presetAppend?: { text: string; nonce: number };
   className?: string;
 };
@@ -30,6 +32,8 @@ function ImageUploader({
   disabled = false,
   aspectLabel,
   aspectTooltip,
+  aspectRatio,
+  onChangeAspectRatio,
   className,
   presetAppend,
 }: ImageUploaderProps): JSX.Element {
@@ -56,6 +60,21 @@ function ImageUploader({
     // Only run when a new append is triggered
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presetAppend?.nonce]);
+
+  const [showAspectRatioPopup, setShowAspectRatioPopup] = useState(false);
+  const arContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onDocClick = (event: MouseEvent) => {
+      if (!showAspectRatioPopup) return;
+      const target = event.target as Element;
+      if (arContainerRef.current && !arContainerRef.current.contains(target)) {
+        setShowAspectRatioPopup(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [showAspectRatioPopup]);
 
   const handleOpenPicker = () => {
     inputRef.current?.click();
@@ -207,101 +226,247 @@ function ImageUploader({
               value={text}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
-              placeholder={disabled ? "Please sign in to generate images..." : "Describe your idea or roll the dice for prompt ideas"}
+              placeholder={
+                disabled
+                  ? "Please sign in to generate images..."
+                  : "Describe your idea or roll the dice for prompt ideas"
+              }
               className="prompt-textarea"
               style={{ height: "auto" }}
               disabled={disabled}
             />
-
-            {/* Icon buttons group inside textarea */}
-            <div className="button-group">
-              {/* Main action button inside textarea */}
-              <button
-                type="button"
-                onClick={handleOpenPicker}
-                disabled={previewUrls.length >= maxImages || isSubmitting || disabled}
-                className="add-images-btn"
-                title={disabled ? "Please sign in to upload images" : "Add images"}
+            <div
+              className="relative button-group"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                width: "100%",
+                minHeight: 60,
+                gap: 8,
+              }}
+            >
+              {/* Left: Add Images */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexShrink: 0,
+                }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="icon-svg"
+                <button
+                  type="button"
+                  onClick={handleOpenPicker}
+                  disabled={
+                    previewUrls.length >= maxImages || isSubmitting || disabled
+                  }
+                  className="add-images-btn shrink-0"
+                  title={
+                    disabled ? "Please sign in to upload images" : "Add images"
+                  }
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    flexShrink: 0,
+                  }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 12h14M12 5l7 7-7 7"
-                  />
-                </svg>
-                <span className="text-xs font-medium">Add Images</span>
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="icon-svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 12h14M12 5l7 7-7 7"
+                    />
+                  </svg>
+                  <span className="text-xs font-medium">Add Images</span>
+                </button>
+              </div>
 
-              {/* Aspect ratio button */}
-              <button
-                type="button"
-                className="aspect-ratio-btn"
-                title={aspectTooltip || "Aspect ratio"}
+              {/* Right: Aspect Ratio + Submit */}
+              <div
+                style={{
+                  marginLeft: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "nowrap",
+                  whiteSpace: "nowrap",
+                }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="icon-svg"
+                {/* Aspect ratio button with popup */}
+                <div
+                  className="flex items-center gap-2 sm:w-auto"
+                  ref={arContainerRef}
+                  data-aspect-ratio-popup
+                  style={{
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    flexShrink: 0,
+                  }}
                 >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <path d="M9 9h6v6H9z" />
-                </svg>
-                {aspectLabel && (
-                  <span className="text-[10px] ml-1 opacity-80">
-                    {aspectLabel}
-                  </span>
-                )}
-              </button>
+                  <button
+                    type="button"
+                    className="aspect-ratio-btn shrink-0"
+                    onClick={() => setShowAspectRatioPopup((v) => !v)}
+                    aria-haspopup="dialog"
+                    aria-expanded={showAspectRatioPopup}
+                    title={aspectTooltip || "Aspect ratio"}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 30,
+                      height: 30,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="icon-svg"
+                      style={{ width: 36, height: 36 }}
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <path d="M9 9h6v6H9z" />
+                    </svg>
+                  </button>
 
-              {/* Settings button */}
-              <button type="button" className="settings-btn" title="Settings">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="icon-svg"
-                >
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-              </button>
+                  {(aspectLabel || aspectRatio) && (
+                    <span className="hidden sm:inline text-[10px] opacity-80 px-1.5 py-0.5 rounded-sm bg-neutral-200 dark:bg-neutral-800 whitespace-nowrap">
+                      {aspectLabel || aspectRatio}
+                    </span>
+                  )}
 
-              {/* Submit button */}
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={!text.trim() || isSubmitting || disabled}
-                className="submit-btn"
-                title={disabled ? "Please sign in to generate images" : "Submit prompt"}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="icon-svg"
+                  {showAspectRatioPopup && (
+                    <div
+                      className="absolute bottom-full right-0 mb-2 bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-lg z-50"
+                      style={{
+                        right: 0,
+                        bottom: "100%",
+                        marginBottom: 8,
+                        minWidth: 240,
+                        maxWidth: 420,
+                        zIndex: 50,
+                      }}
+                    >
+                      <div className="p-3">
+                        <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                          Aspect Ratio
+                        </h3>
+                        <div
+                          className="grid grid-cols-2 gap-2"
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns:
+                              "repeat(auto-fit, minmax(160px, 1fr))",
+                            gap: 8,
+                          }}
+                        >
+                          {[
+                            { value: "1:1", label: "Square (1:1)" },
+                            { value: "4:3", label: "Standard (4:3)" },
+                            { value: "16:9", label: "Widescreen (16:9)" },
+                            { value: "3:2", label: "Photo (3:2)" },
+                            { value: "21:9", label: "Ultrawide (21:9)" },
+                            { value: "9:16", label: "Portrait (9:16)" },
+                          ].map((ratio) => (
+                            <button
+                              key={ratio.value}
+                              type="button"
+                              onClick={() => {
+                                onChangeAspectRatio?.(ratio.value);
+                                setShowAspectRatioPopup(false);
+                              }}
+                              className={`px-3 py-2 text-xs rounded-md border transition-colors ${
+                                (aspectRatio || aspectLabel) === ratio.value
+                                  ? "bg-neutral-900 text-white border-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100"
+                                  : "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-600 dark:hover:bg-neutral-700"
+                              }`}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                width: "100%",
+                                whiteSpace: "normal",
+                                wordBreak: "break-word",
+                                lineHeight: 1.2,
+                                textAlign: "left",
+                              }}
+                            >
+                              {ratio.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                            Current: {aspectRatio || aspectLabel || "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Submit button */}
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={!text.trim() || isSubmitting || disabled}
+                  className="submit-bt shrink-0"
+                  title={
+                    disabled
+                      ? "Please sign in to generate images"
+                      : "Submit prompt"
+                  }
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 60,
+                    height: 60,
+                    borderRadius: "50%",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    flexShrink: 0,
+                  }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 12h14M12 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="icon-svg"
+                    style={{ width: 36, height: 36 }}
+                  >
+                    <circle cx="12" cy="12" r="9" />
+                    <line
+                      x1="8"
+                      y1="12"
+                      x2="16"
+                      y2="12"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <polyline
+                      points="12,8 16,12 12,16"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
