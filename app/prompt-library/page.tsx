@@ -325,15 +325,15 @@ export default function PromptLibraryPage(): JSX.Element {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {user && (
-                      <>
+                    <div className={`flex items-center gap-1 p-2 ${user ? 'cursor-pointer' : 'cursor-default'}`}>
+                      {user ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleToggleLike(prompt.id);
                           }}
                           disabled={likingPrompt.has(prompt.id)}
-                          className={`flex items-center gap-1 p-2 rounded-full transition-colors ${
+                          className={`flex items-center gap-1 rounded-full transition-colors ${
                             likedIds.has(prompt.id)
                               ? 'text-red-600 dark:text-red-400'
                               : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
@@ -352,9 +352,25 @@ export default function PromptLibraryPage(): JSX.Element {
                               d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                             />
                           </svg>
-                          <span className="text-xs">{prompt.like_count || 0}</span>
                         </button>
-                        {user.id === prompt.user_id && (
+                      ) : (
+                        <svg
+                          className="w-4 h-4 text-neutral-600 dark:text-neutral-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                          />
+                        </svg>
+                      )}
+                      <span className="text-xs text-neutral-600 dark:text-neutral-400">{prompt.like_count || 0}</span>
+                    </div>
+                    {user && user.id === prompt.user_id && (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -369,17 +385,30 @@ export default function PromptLibraryPage(): JSX.Element {
                             </svg>
                           </button>
                         )}
-                      </>
-                    )}
+                      {user?.id === prompt.user_id && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(prompt.id);
+                          }}
+                          className="p-2 text-red-600 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full"
+                          aria-label={`Delete ${prompt.title}`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
-      {/* Add Prompt Modal */}
+        {/* Add Prompt Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-neutral-900 rounded-lg p-6 w-full max-w-md mx-4">
