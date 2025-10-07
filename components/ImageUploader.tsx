@@ -229,7 +229,7 @@ function ImageUploader({
               placeholder={
                 disabled
                   ? "Please sign in to generate images..."
-                  : "Describe your idea or roll the dice for prompt ideas"
+                  : "Example: A colourful animal or object with playful or surreal features – like a flamingo with expressive eyes balancing on one legs"
               }
               className="prompt-textarea"
               style={{ height: "auto" }}
@@ -423,7 +423,7 @@ function ImageUploader({
                   type="button"
                   onClick={handleSubmit}
                   disabled={!text.trim() || isSubmitting || disabled}
-                  className="submit-bt shrink-0"
+                  className="submit-btn shrink-0"
                   title={
                     disabled
                       ? "Please sign in to generate images"
