@@ -54,6 +54,19 @@ export default function Header(): JSX.Element {
     };
 
     checkUser();
+
+    // Subscribe to auth state changes
+    const { createClient } = require('@/utils/supabase/client');
+    const supabase = createClient();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: { user: User } | null) => {
+      setUser(session?.user || null);
+      setLoading(false);
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const handleSignOut = async () => {
