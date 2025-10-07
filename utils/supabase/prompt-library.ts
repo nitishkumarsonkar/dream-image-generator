@@ -92,12 +92,18 @@ export async function getLibraryItemWithImages(id: string) {
 export async function getUserLikes() {
   const supabase = createClient()
   
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    return { data: new Set(), error: userError || new Error('User not authenticated') }
+  }
+
   const { data, error } = await supabase
     .from('prompt_library_likes')
     .select('prompt_library_id')
+    .eq('user_id', user.id)
   
   if (error) {
-    return { data: null, error }
+    return { data: new Set(), error }
   }
   
   const likedIds = new Set(data?.map(like => like.prompt_library_id) || [])
