@@ -18,7 +18,8 @@ Add comments for code change for future refernce and uderstanding.
 - typescript
 - Tailwind CSS (for styling)
 ### Server
-- supabase for database, authentication 
+- vercel application deployment
+- supabase for database, authentication
 
 ### AI Integration
 - Google Gemini API (@google/generative-ai)
