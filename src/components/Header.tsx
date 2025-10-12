@@ -13,6 +13,7 @@ type NavItem = { name: string; href: string };
 
 const navItems: NavItem[] = [
   { name: "Home", href: "/" },
+  { name: "AI Chat", href: "/chat" },
   { name: "About Us", href: "/about" },
   { name: "Prompt Library", href: "/prompt-library" },
 ];
