@@ -17,6 +17,8 @@ type ImageUploaderProps = {
   aspectRatio?: string; // current aspect ratio (e.g., "16:9")
   onChangeAspectRatio?: (ratio: string) => void;
   presetAppend?: { text: string; nonce: number };
+  onOpenPresets?: () => void; // New prop to open presets modal
+  hasActivePreset?: boolean; // New prop to show active preset indicator
   className?: string;
 };
 
@@ -36,6 +38,8 @@ function ImageUploader({
   onChangeAspectRatio,
   className,
   presetAppend,
+  onOpenPresets,
+  hasActivePreset = false,
 }: ImageUploaderProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
@@ -287,6 +291,42 @@ function ImageUploader({
                   </svg>
                   <span className="text-xs font-medium">Add Images</span>
                 </button>
+
+                {/* Presets Button */}
+                {onOpenPresets && (
+                  <button
+                    type="button"
+                    onClick={onOpenPresets}
+                    disabled={isSubmitting || disabled}
+                    className="add-images-btn shrink-0 relative"
+                    title="Choose preset"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="icon-svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                      />
+                    </svg>
+                    <span className="text-xs font-medium">Presets</span>
+                    {hasActivePreset && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white dark:border-neutral-900" />
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* Right: Aspect Ratio + Submit */}

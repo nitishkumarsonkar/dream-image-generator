@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import ImageUploader from "./ImageUploader";
+import PresetsModal from "./PresetsModal";
 import { FixedTextareaProps, PresetKey, PresetAppend } from "../../../types";
 import { PRESETS } from "../../../lib/presets";
 import { 
@@ -24,11 +25,14 @@ export default function FixedTextarea({
   onResultsGenerated,
   onError,
   onLoadingChange,
+  onSelectPreset,
+  onApplyCustomPreset,
 }: FixedTextareaProps) {
   const [savedNotes, setSavedNotes] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [promptHistory, setPromptHistory] = useState<string[]>([]);
   const [presetAppend, setPresetAppend] = useState<PresetAppend | undefined>(undefined);
+  const [isPresetsModalOpen, setIsPresetsModalOpen] = useState<boolean>(false);
 
   // Load prompt history on mount
   useEffect(() => {
@@ -182,21 +186,33 @@ export default function FixedTextarea({
   };
 
   return (
-    <div className="p-4">
-      <ImageUploader
-        onImagesSelected={setFiles}
-        onTextChange={setNotes}
-        onSubmitText={handleSave}
-        isSubmitting={isLoading}
-        maxImages={5}
-        maxSizeMB={5}
-        aspectLabel={aspectLabel}
-        aspectTooltip={aspectTooltip}
-        presetAppend={presetAppend}
-        aspectRatio={aspectRatio}
-        onChangeAspectRatio={setAspectRatio}
-        disabled={!user}
+    <>
+      <div className="p-4">
+        <ImageUploader
+          onImagesSelected={setFiles}
+          onTextChange={setNotes}
+          onSubmitText={handleSave}
+          isSubmitting={isLoading}
+          maxImages={5}
+          maxSizeMB={5}
+          aspectLabel={aspectLabel}
+          aspectTooltip={aspectTooltip}
+          presetAppend={presetAppend}
+          aspectRatio={aspectRatio}
+          onChangeAspectRatio={setAspectRatio}
+          disabled={!user}
+          onOpenPresets={() => setIsPresetsModalOpen(true)}
+          hasActivePreset={selectedPreset !== null}
+        />
+      </div>
+
+      <PresetsModal
+        isOpen={isPresetsModalOpen}
+        onClose={() => setIsPresetsModalOpen(false)}
+        selectedKey={selectedPreset}
+        onSelect={onSelectPreset}
+        onApplyCustom={onApplyCustomPreset}
       />
-    </div>
+    </>
   );
 }

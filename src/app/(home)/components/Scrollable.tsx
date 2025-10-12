@@ -22,6 +22,7 @@ export default function Scrollable({
   aspectRatio,
   onInsertPrompt,
   onClearResults,
+  loadedSession,
 }: ScrollableProps) {
   const [toast, setToast] = useState<Toast | null>(null);
 
@@ -262,6 +263,28 @@ export default function Scrollable({
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Display input images from loaded session */}
+          {loadedSession && loadedSession.inputImages.length > 0 && (
+            <div className="mt-6">
+              <div className="p-3 bg-white dark:bg-neutral-900 rounded-lg shadow-sm">
+                <div className="mb-3 text-sm font-medium text-neutral-700 dark:text-neutral-200">
+                  Input Images ({loadedSession.inputImages.length})
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {loadedSession.inputImages.map((imgUrl, idx) => (
+                    <div key={`input-${idx}`} className="rounded-md overflow-hidden bg-neutral-100 dark:bg-neutral-800">
+                      <img
+                        src={imgUrl}
+                        alt={`Input image ${idx + 1}`}
+                        className="w-full h-32 object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
