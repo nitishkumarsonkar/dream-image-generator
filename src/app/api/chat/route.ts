@@ -5,7 +5,7 @@ import { IMAGE_PROMPT_SYSTEM_INSTRUCTION } from '@/lib/gemini-config';
 
 // Initialize Gemini AI client
 const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_API_KEY,
+  apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
 });
 
 interface ChatMessage {
@@ -121,6 +121,31 @@ export async function POST(request: NextRequest) {
     if (insertModelError) {
       console.error('Error saving model message:', insertModelError);
       // Continue anyway - we don't want to fail the request
+    }
+
+    // Create or update session record (for first message or final prompt updates)
+    // Check if this is the first message of the session
+    if (!pastMessages || pastMessages.length === 0) {
+      // Create a session record with a title from the first user message
+      const title = userMessage.slice(0, 50);
+      const { error: sessionError } = await supabase
+        .from('chat_sessions')
+        .insert({
+          id: sessionId,
+          user_id: user.id,
+          title,
+        });
+
+      if (sessionError && sessionError.code !== '23505') { // Ignore duplicate key errors
+        console.error('Error creating session:', sessionError);
+      }
+    } else {
+      // Update session timestamp to keep it at top of history
+      await supabase
+        .from('chat_sessions')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', sessionId)
+        .eq('user_id', user.id);
     }
 
     // Return the model's response

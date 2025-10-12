@@ -4,11 +4,18 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import AuthGuard from '@/components/AuthGuard';
+import ChatHistory from '@/components/ChatHistory';
+import MarkdownText from '@/components/MarkdownText';
 
 interface Message {
   role: 'user' | 'model';
   content: string;
 }
+
+// LocalStorage keys
+const STORAGE_KEY_SESSION_ID = 'chat_current_session_id';
+const STORAGE_KEY_MESSAGES = 'chat_current_messages';
+const STORAGE_KEY_FINAL_PROMPT = 'chat_current_final_prompt';
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -18,11 +25,37 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize session ID on mount
+  // Initialize session from localStorage or create new
   useEffect(() => {
-    setSessionId(uuidv4());
-  }, []);
+    if (isInitialized) return;
+    
+    const storedSessionId = localStorage.getItem(STORAGE_KEY_SESSION_ID);
+    const storedMessages = localStorage.getItem(STORAGE_KEY_MESSAGES);
+    const storedFinalPrompt = localStorage.getItem(STORAGE_KEY_FINAL_PROMPT);
+
+    if (storedSessionId && storedMessages) {
+      // Restore previous session
+      setSessionId(storedSessionId);
+      setMessages(JSON.parse(storedMessages));
+      setFinalPrompt(storedFinalPrompt || '');
+    } else {
+      // Create new session
+      setSessionId(uuidv4());
+    }
+    
+    setIsInitialized(true);
+  }, [isInitialized]);
+
+  // Persist current conversation to localStorage whenever it changes
+  useEffect(() => {
+    if (!isInitialized || !sessionId) return;
+    
+    localStorage.setItem(STORAGE_KEY_SESSION_ID, sessionId);
+    localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages));
+    localStorage.setItem(STORAGE_KEY_FINAL_PROMPT, finalPrompt);
+  }, [messages, sessionId, finalPrompt, isInitialized]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -101,17 +134,117 @@ export default function ChatPage() {
     setSessionId(uuidv4());
   };
 
+  const handleNewChat = async () => {
+    // Save current session to database if there are messages
+    if (messages.length > 0) {
+      try {
+        const firstUserMessage = messages.find(m => m.role === 'user')?.content || 'Untitled';
+        const title = firstUserMessage.slice(0, 50);
+        
+        await fetch('/api/chat/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            title,
+            finalPrompt: finalPrompt || null,
+          }),
+        });
+      } catch (error) {
+        console.error('Error saving session:', error);
+      }
+    }
+
+    // Clear current conversation and create new session
+    setMessages([]);
+    setFinalPrompt('');
+    const newSessionId = uuidv4();
+    setSessionId(newSessionId);
+    
+    // Clear localStorage
+    localStorage.removeItem(STORAGE_KEY_SESSION_ID);
+    localStorage.removeItem(STORAGE_KEY_MESSAGES);
+    localStorage.removeItem(STORAGE_KEY_FINAL_PROMPT);
+  };
+
+  const handleSelectSession = async (selectedSessionId: string) => {
+    // Save current session first if there are messages
+    if (messages.length > 0 && sessionId !== selectedSessionId) {
+      try {
+        const firstUserMessage = messages.find(m => m.role === 'user')?.content || 'Untitled';
+        const title = firstUserMessage.slice(0, 50);
+        
+        await fetch('/api/chat/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            title,
+            finalPrompt: finalPrompt || null,
+          }),
+        });
+      } catch (error) {
+        console.error('Error saving current session:', error);
+      }
+    }
+
+    // Load selected session
+    try {
+      const response = await fetch(`/api/chat/sessions/${selectedSessionId}`);
+      if (!response.ok) throw new Error('Failed to load session');
+      
+      const data = await response.json();
+      setSessionId(selectedSessionId);
+      setMessages(data.messages.map((m: any) => ({
+        role: m.role,
+        content: m.content,
+      })));
+      setFinalPrompt(data.session.final_prompt || '');
+    } catch (error) {
+      console.error('Error loading session:', error);
+      alert('Failed to load conversation');
+    }
+  };
+
+  const handleDeleteSession = (deletedSessionId: string) => {
+    // If the deleted session is the current one, start a new chat
+    if (deletedSessionId === sessionId) {
+      handleNewChat();
+    }
+  };
+
   return (
     <AuthGuard>
+      {/* Chat History Sidebar */}
+      <ChatHistory
+        currentSessionId={sessionId}
+        onSelectSession={handleSelectSession}
+        onDeleteSession={handleDeleteSession}
+      />
+      
       {/* Added pt-16 to account for fixed header */}
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16">
         {/* Changed h-screen to h-[calc(100vh-4rem)] to account for header */}
         <div className="max-w-4xl mx-auto p-4 h-[calc(100vh-4rem)] flex flex-col">
-          {/* Header */}
+          {/* Header with New Chat Button */}
           <div className="mb-4 text-center">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              AI Image Prompt Assistant
-            </h1>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1"></div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex-1">
+                AI Image Prompt Assistant
+              </h1>
+              <div className="flex-1 flex justify-end">
+                <button
+                  onClick={handleNewChat}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  New Chat
+                </button>
+              </div>
+            </div>
             <p className="text-gray-600 dark:text-gray-400">
               Let's refine your image idea into a detailed prompt
             </p>
@@ -140,7 +273,11 @@ export default function ChatPage() {
                       : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  {message.role === 'user' ? (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  ) : (
+                    <MarkdownText content={message.content} />
+                  )}
                 </div>
               </div>
             ))}
