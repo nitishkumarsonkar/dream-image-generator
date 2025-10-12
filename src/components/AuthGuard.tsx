@@ -2,15 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { getCurrentUser } from '@/utils/supabase/auth/user'
-import { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
-
-interface AuthGuardProps {
-  children: React.ReactNode
-}
+import { AuthGuardProps, AppUser } from '../types'
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AppUser>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 

@@ -2,33 +2,7 @@
 // This avoids scattering preset strings across components and enables
 // consistent UI (ratio pill, resolution) and prompt templating.
 
-export type PresetKey = "instagram" | "ghibli" | "professional" | "other";
-
-// Keep ratios constrained for predictable exports and UI badges.
-// If you add more, prefer well-known platform aspect ratios.
-export type AspectRatio = "1:1" | "4:5" | "16:9";
-
-export type Preset = {
-  id: PresetKey;
-  label: string;
-  desc?: string;
-
-  // Display ratio + concrete export size to guide generation/export.
-  ratio: AspectRatio;
-  width: number;
-  height: number;
-
-  // Prompt scaffolding to append to user's prompt (except "other").
-  // Use {topic} or leave generic if not topic-based.
-  promptTemplate: string;
-
-  // Optional platform for future platform-specific helpers (safe areas, etc.)
-  platform?: "instagram" | "linkedin" | "youtube";
-
-  // Optional flags for lightweight post-processing (future)
-  watermark?: boolean;
-  overlayText?: { placeholder: string; maxChars: number };
-};
+import { PresetKey, AspectRatio, Preset } from "../types";
 
 // NOTE: Sizes chosen to match common platform specs where applicable.
 // - Instagram portrait: 1080x1350 (4:5)
