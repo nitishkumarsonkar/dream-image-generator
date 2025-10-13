@@ -164,6 +164,11 @@ export interface ScrollableProps {
   aspectRatio: string;
   onInsertPrompt: (txt: string) => void;
   onClearResults: () => void;
+  loadedSession?: {
+    promptText: string;
+    inputImages: string[];
+    outputImages: string[];
+  } | null;
 }
 
 // Fixed textarea component props
@@ -186,6 +191,8 @@ export interface FixedTextareaProps {
   }) => void;
   onError: (error: string) => void;
   onLoadingChange: (loading: boolean) => void;
+  onSelectPreset: (key: PresetKey) => void;
+  onApplyCustomPreset: (text: string) => void;
 }
 
 // Auth guard component props
