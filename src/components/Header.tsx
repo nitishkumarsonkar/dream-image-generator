@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
@@ -35,12 +35,25 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   );
 }
 
+// Helper function to get user initials from email
+function getUserInitials(email: string): string {
+  const parts = email.split('@')[0].split('.');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return email.slice(0, 2).toUpperCase();
+}
+
 export default function Header(): JSX.Element {
   const pathname = usePathname() || "/";
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // State for user dropdown menu (desktop)
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -70,10 +83,28 @@ export default function Header(): JSX.Element {
     };
   }, []);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu]);
+
   const handleSignOut = async () => {
     try {
       await signOut();
       setUser(null);
+      setShowUserMenu(false); // Close dropdown after sign out
       router.push("/sign-in");
     } catch (error) {
       console.error("Sign out failed:", error);
@@ -119,18 +150,85 @@ export default function Header(): JSX.Element {
             {!loading && (
               <>
                 {user ? (
-                  <div className="hidden md:flex items-center gap-3">
-                    <span className="text-sm text-neutral-600 dark:text-neutral-400 font-medium">
-                      {user.email}
-                    </span>
+                  // Desktop: User dropdown menu with avatar
+                  <div className="hidden md:block relative" ref={userMenuRef}>
+                    {/* Avatar button to toggle dropdown */}
                     <button
-                      onClick={handleSignOut}
-                      className="px-4 py-2 text-sm font-medium text-neutral-700 hover:text-primary-600 hover:bg-primary-50 dark:text-neutral-300 dark:hover:text-primary-400 dark:hover:bg-primary-950/30 rounded-lg transition-all duration-300"
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950/30 transition-all duration-300 border border-transparent hover:border-primary-200 dark:hover:border-primary-800"
+                      aria-haspopup="menu"
+                      aria-expanded={showUserMenu}
                     >
-                      Sign out
+                      {/* User Avatar with initials */}
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-sm font-bold shadow-soft">
+                        {getUserInitials(user.email || 'U')}
+                      </div>
+                      {/* Dropdown arrow icon */}
+                      <svg 
+                        className={`w-4 h-4 text-neutral-600 dark:text-neutral-400 transition-transform duration-300 ${showUserMenu ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
+
+                    {/* Dropdown menu - appears when showUserMenu is true */}
+                    {showUserMenu && (
+                      <div className="absolute right-0 mt-2 w-72 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md rounded-xl border-2 border-primary-200 dark:border-primary-800 shadow-xl z-50 animate-slide-down overflow-hidden">
+                        {/* User info section */}
+                        <div className="px-4 py-3 bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-950/30 dark:to-accent-950/30 border-b border-primary-200 dark:border-primary-800">
+                          <div className="flex items-center gap-3">
+                            {/* Avatar */}
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-base font-bold shadow-soft flex-shrink-0">
+                              {getUserInitials(user.email || 'U')}
+                            </div>
+                            {/* User details */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-neutral-900 dark:text-neutral-100 truncate">
+                                {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
+                              </p>
+                              <p className="text-xs text-neutral-600 dark:text-neutral-400 truncate">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Menu items */}
+                        <div className="py-2">
+                          {/* Account Settings - Optional, can be uncommented if needed */}
+                          {/* <button
+                            className="w-full px-4 py-2.5 text-left text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-primary-50 dark:hover:bg-primary-950/30 transition-all duration-300 flex items-center gap-3"
+                          >
+                            <svg className="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Account Settings
+                          </button> */}
+
+                          {/* Divider */}
+                          <div className="my-2 border-t border-neutral-200 dark:border-neutral-800"></div>
+
+                          {/* Sign Out button */}
+                          <button
+                            onClick={handleSignOut}
+                            className="w-full px-4 py-2.5 text-left text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all duration-300 flex items-center gap-3"
+                          >
+                            {/* Sign out icon */}
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Sign out
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
+                  // Sign in button for non-authenticated users
                   <Link
                     href="/sign-in"
                     className="hidden md:block px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-500 hover:to-primary-600 shadow-lg shadow-primary-500/30 transition-all duration-300"
@@ -141,10 +239,12 @@ export default function Header(): JSX.Element {
               </>
             )}
 
+            {/* Theme toggle button */}
             <div className="hidden md:block">
               <ThemeToggle />
             </div>
 
+            {/* Mobile menu hamburger button */}
             <button
               type="button"
               onClick={() => setOpen((o) => !o)}
