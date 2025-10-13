@@ -6,25 +6,6 @@ import { savePrompt } from '@/utils/supabase/prompt-library';
 import { getCurrentUser } from '@/utils/supabase/auth/user';
 import { User } from '@supabase/supabase-js';
 
-type Theme = "light" | "dark";
-
-function getSystemPreference(): Theme {
-  if (typeof window === "undefined") return "light";
-  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-}
-
-function applyTheme(theme: Theme) {
-  if (typeof document === "undefined") return;
-  const root = document.documentElement;
-  if (theme === "dark") {
-    root.classList.add("dark");
-  } else {
-    root.classList.remove("dark");
-  }
-}
-
 type PromptRow = {
   id: string;
   prompt_text: string | null;
@@ -39,51 +20,7 @@ export default function HistoryPage() {
   const [addingToLibrary, setAddingToLibrary] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    // Initialize theme synchronization
-    const stored = (typeof window !== "undefined" && window.localStorage.getItem("theme")) as Theme | null;
-    const initial = stored ?? getSystemPreference();
-    applyTheme(initial);
-    
     loadUser();
-  }, []);
-
-  useEffect(() => {
-    // Listen for theme changes from other components
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'theme' && e.newValue) {
-        const newTheme = e.newValue as Theme;
-        applyTheme(newTheme);
-      }
-    };
-
-    // Listen for theme changes in the same tab
-    window.addEventListener('storage', handleStorageChange);
-
-    // Also listen for direct DOM changes (when ThemeToggle updates the class)
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          const target = mutation.target as HTMLElement;
-          if (target.classList.contains('dark')) {
-            // Dark mode is active - ensure theme is applied
-            applyTheme('dark');
-          } else {
-            // Light mode is active - ensure theme is applied
-            applyTheme('light');
-          }
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      observer.disconnect();
-    };
   }, []);
 
   const loadUser = async () => {
