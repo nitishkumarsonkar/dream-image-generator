@@ -33,16 +33,16 @@ export default function SidebarPresets({
   return (
     <aside
       className={[
-        "rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3",
+        "rounded-xl border border-neutral-200/50 dark:border-neutral-800/50 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm p-4 shadow-soft",
         className,
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-200 px-2">
-        Presets
+      <h2 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 px-2 mb-3 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+        Style Presets
       </h2>
-      <div className="mt-2 grid gap-1">
+      <div className="mt-2 grid gap-2">
         {ORDER.map((key) => {
           const p = PRESETS[key];
           const label = p.label;
@@ -54,21 +54,21 @@ export default function SidebarPresets({
               type="button"
               onClick={() => onSelect(key)}
               aria-pressed={active ? "true" : "false"}
-              className={`w-full text-left px-3 py-2 rounded-md transition
+              className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02]
                 ${
                   active
-                    ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-                    : "text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-neutral-800/60"
+                    ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30"
+                    : "text-neutral-700 hover:text-primary-600 hover:bg-primary-50 dark:text-neutral-300 dark:hover:text-primary-400 dark:hover:bg-primary-950/30 border border-transparent hover:border-primary-200 dark:hover:border-primary-800"
                 }`}
             >
-              <div className="text-sm font-medium">{label}</div>
-              {desc && <div className="text-xs opacity-80">{desc}</div>}
+                            <div className="text-sm font-medium">{label}</div>
+              {desc && <div className="text-xs opacity-90 mt-0.5">{desc}</div>}
               {key !== "other" && (
-                <div className="mt-1 flex gap-2 text-[10px] text-neutral-600 dark:text-neutral-400">
-                  <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
+                <div className="mt-2 flex gap-2 text-[10px]">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 font-medium ${active ? 'bg-white/20 text-white' : 'bg-primary-100 text-primary-700 dark:bg-primary-950/50 dark:text-primary-400'}`}>
                     {p.ratio}
                   </span>
-                  <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-700 px-2 py-0.5">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 font-medium ${active ? 'bg-white/20 text-white' : 'bg-accent-100 text-accent-700 dark:bg-accent-950/50 dark:text-accent-400'}`}>
                     {formatResolution(p)}
                   </span>
                 </div>
@@ -79,33 +79,33 @@ export default function SidebarPresets({
       </div>
 
       {selectedKey === "other" && (
-        <div className="mt-3">
+        <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-950/30 rounded-lg border border-primary-200 dark:border-primary-800 animate-slide-down">
           <label
             htmlFor="custom-preset"
-            className="block text-xs text-neutral-600 dark:text-neutral-400 mb-1"
+            className="block text-xs font-semibold text-primary-700 dark:text-primary-400 mb-2"
           >
-            Custom snippet to append
+            Custom Style
           </label>
           <textarea
             id="custom-preset"
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
             placeholder="Describe extra style, format, mood, etc."
-            className="w-full h-24 rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm p-2 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-300 dark:focus:ring-neutral-700"
+            className="w-full h-24 rounded-lg border border-primary-300 dark:border-primary-700 bg-white dark:bg-neutral-900 text-sm p-3 text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-300"
           />
-          <div className="mt-2 flex gap-2">
+          <div className="mt-3 flex gap-2">
             <button
               type="button"
               onClick={handleApply}
               disabled={!customText.trim()}
-              className="btn-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-500 hover:to-primary-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary-500/30 transition-all duration-300"
             >
               Apply
             </button>
             <button
               type="button"
               onClick={() => setCustomText("")}
-              className="btn-ghost"
+              className="px-4 py-2 rounded-lg font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 transition-all duration-300"
             >
               Clear
             </button>
@@ -113,12 +113,12 @@ export default function SidebarPresets({
         </div>
       )}
 
-      <div className="mt-4 pt-3 border-t border-neutral-200 dark:border-neutral-800">
+      <div className="mt-4 pt-4 border-t border-neutral-200/50 dark:border-neutral-800/50">
         <a
           href="/history"
-          className="w-full inline-flex items-center justify-center px-3 py-2 rounded-md border border-neutral-200 dark:border-neutral-700 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
+          className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-lg border border-primary-200 dark:border-primary-800 text-sm font-medium text-primary-700 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/30 transition-all duration-300"
         >
-          History
+          View History
         </a>
       </div>
     </aside>
