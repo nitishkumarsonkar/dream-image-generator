@@ -12,6 +12,9 @@ import { createClient } from '@/utils/supabase/server';
 import { addCredits } from '@/utils/supabase/credits';
 import crypto from 'crypto';
 
+// Tell Next.js this is a dynamic route (not static)
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/payment/razorpay/verify-payment
  * Verifies Razorpay payment and adds credits to user account
