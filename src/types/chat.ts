@@ -14,6 +14,8 @@ export interface ChatMessage {
 export interface ChatSession {
   id: string;
   user_id: string;
+  title?: string | null;
+  final_prompt?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,4 +33,13 @@ export interface ChatAPIResponse {
 export interface ChatAPIError {
   error: string;
   details?: string;
+}
+
+export interface SessionListResponse {
+  sessions: ChatSession[];
+}
+
+export interface SessionMessagesResponse {
+  session: ChatSession;
+  messages: ChatMessage[];
 }

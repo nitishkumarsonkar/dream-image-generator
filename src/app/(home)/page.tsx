@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 // import ImageUploader from "../../components/ImageUploader";
 import Scrollable from "./components/Scrollable";
 import FixedTextarea from "./components/FixedTextarea";
-import { SidebarDesktop, SidebarDrawer } from "../../components/SidebarPresets";
+import ImageGenerationHistory from "./components/ImageGenerationHistory";
 import { getCurrentUser } from "@/utils/supabase/auth/user";
 import { PRESETS, formatResolution } from "../../lib/presets";
 import { AppUser, PresetKey, PresetAppend } from "../../types";
@@ -41,6 +41,11 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [aspectRatio, setAspectRatio] = useState<string>("16:9");
+  const [loadedSession, setLoadedSession] = useState<{
+    promptText: string;
+    inputImages: string[];
+    outputImages: string[];
+  } | null>(null);
 
   const [presetAppend, setPresetAppend] = useState<PresetAppend | undefined>(undefined);
 
@@ -115,11 +120,42 @@ export default function HomePage() {
     setPresetAppend({ text: t, nonce: Date.now() });
   };
 
+  // Load a complete generation session from history
+  const handleLoadSession = (promptData: {
+    id: string;
+    prompt_text: string | null;
+    created_at: string;
+    prompt_images?: Array<{ image_url: string; image_type: 'input' | 'output' }>;
+  }) => {
+    // Separate input and output images
+    const inputImages = promptData.prompt_images?.filter(img => img.image_type === 'input').map(img => img.image_url) || [];
+    const outputImages = promptData.prompt_images?.filter(img => img.image_type === 'output').map(img => img.image_url) || [];
+
+    // Set the loaded session
+    setLoadedSession({
+      promptText: promptData.prompt_text || '',
+      inputImages,
+      outputImages,
+    });
+
+    // Also populate the results display
+    setSubmittedNotes(promptData.prompt_text || '');
+    setGeneratedImages(outputImages);
+    setSavedNotes(promptData.prompt_text || '');
+    if (outputImages.length > 0) setSelectedGeneratedIndex(0);
+
+    // Optionally insert the prompt into textarea for editing/regeneration
+    if (promptData.prompt_text) {
+      setPresetAppend({ text: promptData.prompt_text, nonce: Date.now() });
+    }
+  };
+
   // Clear results handler
   const handleClearResults = () => {
     setGeneratedImages([]);
     setSubmittedNotes("");
     setSelectedGeneratedIndex(0);
+    setLoadedSession(null);
   };
 
   // Show loading state
@@ -138,21 +174,12 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Desktop fixed/collapsible sidebar */}
-      <SidebarDesktop
-        selectedKey={selectedPreset}
-        onSelect={handlePresetSelect}
-        onApplyCustom={handleApplyCustom}
+      {/* Image Generation History Sidebar */}
+      <ImageGenerationHistory
+        onSelectPrompt={handleLoadSession}
       />
 
-      {/* Mobile sidebar drawer (overlay) */}
-      <SidebarDrawer
-        selectedKey={selectedPreset}
-        onSelect={handlePresetSelect}
-        onApplyCustom={handleApplyCustom}
-      />
-
-      <main className="h-screen pt-16 md:ml-64 flex flex-col">
+      <main className="h-screen pt-16 md:ml-80 flex flex-col">
         <Scrollable
           user={user}
           selectedPreset={selectedPreset}
@@ -170,6 +197,7 @@ export default function HomePage() {
           aspectRatio={aspectRatio}
           onInsertPrompt={handleInsertPrompt}
           onClearResults={handleClearResults}
+          loadedSession={loadedSession}
         />
         <FixedTextarea
           files={files}
@@ -186,6 +214,8 @@ export default function HomePage() {
           onResultsGenerated={handleResultsGenerated}
           onError={handleError}
           onLoadingChange={handleLoadingChange}
+          onSelectPreset={handlePresetSelect}
+          onApplyCustomPreset={handleApplyCustom}
         />
       </main>
     </>
