@@ -12,12 +12,23 @@ import { createClient } from '@/utils/supabase/server';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 
-// Initialize Razorpay instance
-// Make sure to set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your .env.local file
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+// Tell Next.js this is a dynamic route (not static)
+export const dynamic = 'force-dynamic';
+
+/**
+ * Get Razorpay instance
+ * Initialized lazily to avoid build-time errors on Vercel
+ */
+function getRazorpayInstance() {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    throw new Error('Razorpay credentials not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.');
+  }
+  
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+}
 
 /**
  * POST /api/payment/razorpay/create-order
@@ -63,6 +74,9 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Get Razorpay instance
+    const razorpay = getRazorpayInstance();
 
     // Create Razorpay order
     // Amount should be in paise (smallest currency unit)
