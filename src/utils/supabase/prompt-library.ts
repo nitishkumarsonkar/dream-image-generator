@@ -15,9 +15,10 @@ export async function getPromptLibrary(userId?: string) {
     .order('created_at', { ascending: false })
 
   if (userId) {
-    query = query.eq('user_id', userId)
+    // Get user's own prompts (public or private) OR public prompts from others
+    query = query.or(`user_id.eq.${userId},is_public.eq.true`)
   } else {
-    // Get public prompts
+    // Get only public prompts
     query = query.eq('is_public', true)
   }
 
@@ -217,4 +218,119 @@ export async function deletePrompt(id: string) {
     .eq('id', id)
 
   return { error }
+}
+
+// Upload images to Supabase storage and save prompt with images
+export async function savePromptWithImages(
+  prompt: Omit<PromptLibraryInsert, 'id' | 'created_at' | 'updated_at'>,
+  inputImages: File[],
+  outputImages: File[]
+) {
+  const supabase = createClient()
+  const BUCKET_NAME = 'prompts-pic'
+  
+  try {
+    const timestamp = Date.now()  
+    
+    // Upload input images
+    const inputImageUrls: string[] = []
+    for (let i = 0; i < inputImages.length; i++) {
+      const file = inputImages[i]
+      const fileExt = file.name.split('.').pop()
+      const filePath = `prompt-library/${prompt.user_id}/${timestamp}_input_${i}.${fileExt}`
+      
+      const { data, error } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(filePath, file, { contentType: file.type })
+      
+      if (error) {
+        console.error('Error uploading input image:', error)
+        throw error
+      }
+      
+      const { data: { publicUrl } } = supabase.storage.from(BUCKET_NAME).getPublicUrl(data.path)
+      inputImageUrls.push(publicUrl)
+    }
+    
+    // Upload output images
+    const outputImageUrls: string[] = []
+    for (let i = 0; i < outputImages.length; i++) {
+      const file = outputImages[i]
+      const fileExt = file.name.split('.').pop()
+      const filePath = `prompt-library/${prompt.user_id}/${timestamp}_output_${i}.${fileExt}`
+      
+      const { data, error } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(filePath, file, { contentType: file.type })
+      
+      if (error) {
+        console.error('Error uploading output image:', error)
+        throw error
+      }
+      
+      const { data: { publicUrl } } = supabase.storage.from(BUCKET_NAME).getPublicUrl(data.path)
+      outputImageUrls.push(publicUrl)
+    }
+    
+    // If there are images, create a prompt record first, then insert images
+    let sourcePromptId: string | null = null
+    if (inputImageUrls.length > 0 || outputImageUrls.length > 0) {
+      // First, create a record in the prompt table
+      const { data: promptData, error: promptError } = await supabase
+        .from('prompt')
+        .insert({
+          user_id: prompt.user_id,
+          prompt_text: prompt.prompt,
+        })
+        .select()
+        .single()
+      
+      if (promptError || !promptData) {
+        console.error('Error creating prompt record:', promptError)
+        throw promptError
+      }
+      
+      sourcePromptId = promptData.id
+      
+      // Now insert all image records with the valid prompt_id
+      const imageRecords = [
+        ...inputImageUrls.map(url => ({
+          prompt_id: promptData.id,
+          image_url: url,
+          image_type: 'input' as const,
+        })),
+        ...outputImageUrls.map(url => ({
+          prompt_id: promptData.id,
+          image_url: url,
+          image_type: 'output' as const,
+        })),
+      ]
+      
+      const { error: imageError } = await supabase
+        .from('prompt_images')
+        .insert(imageRecords)
+      
+      if (imageError) {
+        console.error('Error saving image records:', imageError)
+        throw imageError
+      }
+    }
+    
+    // Now save the prompt library entry
+    const { data, error } = await supabase
+      .from('prompt_library')
+      .insert({
+        ...prompt,
+        source_prompt_id: sourcePromptId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+    
+    return { data, error }
+  } catch (error) {
+    console.error('Error in savePromptWithImages:', error)
+    return { data: null, error }
+  }
 }

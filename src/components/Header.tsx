@@ -16,7 +16,7 @@ const navItems: NavItem[] = [
   { name: "AI Chat", href: "/chat" },
   { name: "Credits", href: "/credits" },
   { name: "About Us", href: "/about" },
-  { name: "Prompt Library", href: "/prompt-library" },
+  { name: "Public Prompts", href: "/prompt-library" },
 ];
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
