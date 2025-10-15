@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, type Content } from '@google/genai';
 import { createClient } from '@/utils/supabase/server';
 import { IMAGE_PROMPT_SYSTEM_INSTRUCTION } from '@/lib/gemini-config';
+import { hasEnoughCredits, deductCredits } from '@/utils/supabase/credits';
 
 // Initialize Gemini AI client
 const ai = new GoogleGenAI({
   apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
 });
+
+// Credit cost for AI chat messages
+const CHAT_CREDIT_COST = 1;
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -40,6 +44,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Check if user has enough credits
+    const enoughCredits = await hasEnoughCredits(user.id, CHAT_CREDIT_COST, supabase);
+    if (!enoughCredits) {
+      return NextResponse.json(
+        { error: 'Insufficient credits', requiredCredits: CHAT_CREDIT_COST },
+        { status: 402 } // Payment Required
       );
     }
 
@@ -92,6 +105,26 @@ export async function POST(request: NextRequest) {
     });
 
     const modelResponse = result.text;
+
+    // Deduct credits for the AI chat message
+    try {
+      await deductCredits({
+        userId: user.id,
+        amount: CHAT_CREDIT_COST,
+        type: 'ai_chat',
+        description: `AI chat message in session ${sessionId}`,
+        metadata: {
+          sessionId,
+          messagePreview: userMessage.slice(0, 50),
+        },
+      }, supabase);
+    } catch (creditError) {
+      console.error('Error deducting credits:', creditError);
+      return NextResponse.json(
+        { error: 'Failed to deduct credits', details: creditError instanceof Error ? creditError.message : 'Unknown error' },
+        { status: 500 }
+      );
+    }
 
     // Save the user message to Supabase
     const { error: insertUserError } = await supabase

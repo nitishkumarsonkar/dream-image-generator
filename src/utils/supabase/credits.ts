@@ -9,6 +9,7 @@
  */
 
 import { createClient } from './client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Type definitions for better type safety
 export type TransactionType = 
@@ -56,15 +57,16 @@ export interface AddCreditsParams {
  * Initializes credits if user doesn't have a record yet
  * 
  * @param userId - The user's UUID
+ * @param supabase - Optional Supabase client (if not provided, creates browser client)
  * @returns Promise<number> - The current credit balance
  * @throws Error if database operation fails
  */
-export async function getUserCredits(userId: string): Promise<number> {
-  const supabase = createClient();
+export async function getUserCredits(userId: string, supabase?: SupabaseClient): Promise<number> {
+  const client = supabase || createClient();
 
   try {
     // First, try to get existing credits
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('user_credits')
       .select('credits')
       .eq('user_id', userId)
@@ -73,7 +75,7 @@ export async function getUserCredits(userId: string): Promise<number> {
     if (error) {
       // If user doesn't have credits record, create one with initial 50 credits
       if (error.code === 'PGRST116') {
-        const { data: newData, error: insertError } = await supabase
+        const { data: newData, error: insertError } = await client
           .from('user_credits')
           .insert({ user_id: userId, credits: 50 })
           .select('credits')
@@ -85,7 +87,7 @@ export async function getUserCredits(userId: string): Promise<number> {
         }
 
         // Log initial bonus transaction
-        await supabase.from('credit_transactions').insert({
+        await client.from('credit_transactions').insert({
           user_id: userId,
           amount: 50,
           transaction_type: 'initial_bonus',
@@ -113,14 +115,16 @@ export async function getUserCredits(userId: string): Promise<number> {
  * 
  * @param userId - The user's UUID
  * @param requiredAmount - The amount of credits required
+ * @param supabase - Optional Supabase client (if not provided, creates browser client)
  * @returns Promise<boolean> - True if user has enough credits
  */
 export async function hasEnoughCredits(
   userId: string, 
-  requiredAmount: number
+  requiredAmount: number,
+  supabase?: SupabaseClient
 ): Promise<boolean> {
   try {
-    const currentBalance = await getUserCredits(userId);
+    const currentBalance = await getUserCredits(userId, supabase);
     return currentBalance >= requiredAmount;
   } catch (error) {
     console.error('Error checking credit balance:', error);
@@ -133,6 +137,7 @@ export async function hasEnoughCredits(
  * This is an atomic operation that updates balance and creates transaction log
  * 
  * @param params - DeductCreditsParams object
+ * @param supabase - Optional Supabase client (if not provided, creates browser client)
  * @returns Promise<number> - The new balance after deduction
  * @throws Error if insufficient credits or database operation fails
  */
@@ -142,12 +147,12 @@ export async function deductCredits({
   type,
   description,
   metadata = {}
-}: DeductCreditsParams): Promise<number> {
-  const supabase = createClient();
+}: DeductCreditsParams, supabase?: SupabaseClient): Promise<number> {
+  const client = supabase || createClient();
 
   try {
     // Get current balance
-    const currentBalance = await getUserCredits(userId);
+    const currentBalance = await getUserCredits(userId, client);
 
     // Check if user has enough credits
     if (currentBalance < amount) {
@@ -158,7 +163,7 @@ export async function deductCredits({
     const newBalance = currentBalance - amount;
 
     // Update user's credit balance
-    const { error: updateError } = await supabase
+    const { error: updateError } = await client
       .from('user_credits')
       .update({ credits: newBalance })
       .eq('user_id', userId);
@@ -169,7 +174,7 @@ export async function deductCredits({
     }
 
     // Log the transaction (negative amount for deductions)
-    const { error: transactionError } = await supabase
+    const { error: transactionError } = await client
       .from('credit_transactions')
       .insert({
         user_id: userId,
@@ -197,6 +202,7 @@ export async function deductCredits({
  * This is an atomic operation that updates balance and creates transaction log
  * 
  * @param params - AddCreditsParams object
+ * @param supabase - Optional Supabase client (if not provided, creates browser client)
  * @returns Promise<number> - The new balance after addition
  * @throws Error if database operation fails
  */
@@ -206,18 +212,18 @@ export async function addCredits({
   type,
   description,
   metadata = {}
-}: AddCreditsParams): Promise<number> {
-  const supabase = createClient();
+}: AddCreditsParams, supabase?: SupabaseClient): Promise<number> {
+  const client = supabase || createClient();
 
   try {
     // Get current balance
-    const currentBalance = await getUserCredits(userId);
+    const currentBalance = await getUserCredits(userId, client);
 
     // Calculate new balance
     const newBalance = currentBalance + amount;
 
     // Update user's credit balance
-    const { error: updateError } = await supabase
+    const { error: updateError } = await client
       .from('user_credits')
       .update({ credits: newBalance })
       .eq('user_id', userId);
@@ -228,7 +234,7 @@ export async function addCredits({
     }
 
     // Log the transaction (positive amount for additions)
-    const { error: transactionError } = await supabase
+    const { error: transactionError } = await client
       .from('credit_transactions')
       .insert({
         user_id: userId,

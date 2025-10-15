@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@/app/utils/supabase/server';
 import { decode } from 'base64-arraybuffer';
+import { hasEnoughCredits, deductCredits } from '@/utils/supabase/credits';
 
 type PartOut = { type: 'text'; text: string } | { type: 'image'; mimeType: string; data: string };
 
 const BUCKET_NAME = 'prompts-pic';
+const IMAGE_GENERATION_COST = 5; // Credit cost for generating an image
 
 // Note: Route Handlers in the app router don't support the `config` npmexport used by
 // pages/api to increase bodyParser size. When sending large payloads, prefer
@@ -17,6 +19,23 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
+
+    // Check if user is authenticated
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please sign in to generate images.' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user has enough credits
+    const enoughCredits = await hasEnoughCredits(user.id, IMAGE_GENERATION_COST, supabase);
+    if (!enoughCredits) {
+      return NextResponse.json(
+        { error: 'Insufficient credits', requiredCredits: IMAGE_GENERATION_COST },
+        { status: 402 } // Payment Required
+      );
+    }
 
     const apiKey = process.env.GENAI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!apiKey) {
@@ -98,6 +117,29 @@ export async function POST(request: Request) {
         else if (part.inlineData && part.inlineData.data) {
           parts.push({ type: 'image', mimeType: part.inlineData.mimeType || 'image/png', data: part.inlineData.data });
         }
+      }
+    }
+
+    // Deduct credits for successful image generation
+    if (user) {
+      try {
+        await deductCredits({
+          userId: user.id,
+          amount: IMAGE_GENERATION_COST,
+          type: 'image_generation',
+          description: `Generated image with prompt: ${prompt.slice(0, 50)}...`,
+          metadata: {
+            promptPreview: prompt.slice(0, 100),
+            imagesGenerated: parts.filter(p => p.type === 'image').length,
+            aspectRatio: aspectRatio || 'default',
+          },
+        }, supabase);
+      } catch (creditError) {
+        console.error('Error deducting credits:', creditError);
+        return NextResponse.json(
+          { error: 'Failed to deduct credits', details: creditError instanceof Error ? creditError.message : 'Unknown error' },
+          { status: 500 }
+        );
       }
     }
 
