@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
           packageId,
           payment_method: 'razorpay',
         }
-      });
+      }, supabase);
 
       // Return success response
       return NextResponse.json({
