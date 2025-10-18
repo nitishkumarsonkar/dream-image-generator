@@ -364,8 +364,8 @@ function ImageUploader({
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      width: 30,
-                      height: 30,
+                      width: 45,
+                      height: 45,
                       flexShrink: 0,
                     }}
                   >
@@ -374,7 +374,7 @@ function ImageUploader({
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="1"
                       className="icon-svg"
                       style={{ width: 36, height: 36 }}
                     >
@@ -384,7 +384,7 @@ function ImageUploader({
                   </button>
 
                   {(aspectLabel || aspectRatio) && (
-                    <span className="hidden sm:inline text-[10px] font-semibold opacity-90 px-2 py-1 rounded-md bg-gradient-to-r from-accent-100 to-accent-200 dark:from-accent-950/50 dark:to-accent-900/50 text-accent-700 dark:text-accent-300 border border-accent-300 dark:border-accent-800 whitespace-nowrap shadow-sm">
+                    <span className="hidden sm:inline text-[20px] font-semibold opacity-90 px-2 py-1 rounded-md bg-gradient-to-r from-accent-100 to-accent-200 dark:from-accent-900/50 text-accent-700 dark:text-accent-500 border border-accent-300 dark:border-accent-800 whitespace-nowrap shadow-sm">
                       {aspectLabel || aspectRatio}
                     </span>
                   )}
@@ -479,9 +479,9 @@ function ImageUploader({
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    width: 60,
-                    height: 60,
-                    borderRadius: "50%",
+                    width: 45,
+                    height: 45,
+                    borderRadius: "25%",
                     backgroundColor: "transparent",
                     border: "none",
                     flexShrink: 0,
@@ -496,7 +496,6 @@ function ImageUploader({
                     className="icon-svg"
                     style={{ width: 36, height: 36 }}
                   >
-                    <circle cx="12" cy="12" r="9" />
                     <line
                       x1="8"
                       y1="12"

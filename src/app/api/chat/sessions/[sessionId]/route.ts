@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { logError, logInfo, logWarn } from '@/lib/logger';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { sessionId: string } }
 ) {
+  const startTime = Date.now();
+  let userId: string | undefined;
+  
   try {
     const sessionId = params.sessionId;
 
     if (!sessionId) {
+      logWarn('Chat session messages requested without session ID');
       return NextResponse.json(
         { error: 'Session ID is required' },
         { status: 400 }
@@ -20,11 +25,18 @@ export async function GET(
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
+      logWarn('Unauthorized chat session messages access attempt', {
+        sessionId,
+        authError: authError?.message,
+        ip: request.headers.get('x-forwarded-for')
+      });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    userId = user.id;
 
     // Fetch session metadata
     const { data: session, error: sessionError } = await supabase
@@ -35,7 +47,11 @@ export async function GET(
       .single();
 
     if (sessionError) {
-      console.error('Error fetching session:', sessionError);
+      logWarn('Chat session not found or access denied', {
+        userId: user.id,
+        sessionId,
+        error: sessionError.message
+      });
       return NextResponse.json(
         { error: 'Session not found' },
         { status: 404 }
@@ -51,12 +67,24 @@ export async function GET(
       .order('created_at', { ascending: true });
 
     if (messagesError) {
-      console.error('Error fetching messages:', messagesError);
+      logError('Failed to fetch chat messages', messagesError, user.id, {
+        component: 'chat-session-messages',
+        sessionId,
+        operation: 'fetch_messages'
+      });
       return NextResponse.json(
         { error: 'Failed to fetch messages' },
         { status: 500 }
       );
     }
+
+    const duration = Date.now() - startTime;
+    logInfo('Chat session messages retrieved', {
+      userId: user.id,
+      sessionId,
+      messageCount: messages?.length || 0,
+      duration
+    });
 
     return NextResponse.json({
       session,
@@ -64,7 +92,13 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Error in session messages GET API:', error);
+    logError('Chat session messages GET API error', error as Error, userId, {
+      component: 'chat-session-messages',
+      sessionId: params.sessionId,
+      endpoint: `/api/chat/sessions/${params.sessionId}`,
+      method: 'GET',
+      duration: Date.now() - startTime
+    });
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

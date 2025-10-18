@@ -179,7 +179,7 @@ export default function HomePage() {
         onSelectPrompt={handleLoadSession}
       />
 
-      <main className="h-screen pt-16 md:ml-80 flex flex-col">
+      <main className="h-screen pt-16 flex flex-col">
         <Scrollable
           user={user}
           selectedPreset={selectedPreset}

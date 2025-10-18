@@ -265,12 +265,12 @@ export default function Scrollable({
             </div>
           )}
 
-          {!isLoading && submittedNotes && (
+          {/* {!isLoading && submittedNotes && (
             <div className="mt-4 p-3 bg-white dark:bg-neutral-900 rounded-lg shadow-sm text-sm text-neutral-700 dark:text-neutral-200">
               Response:{" "}
               <span className="font-medium">{submittedNotes}</span>
             </div>
-          )}
+          )} */}
 
           {files.length > 0 && (
             <div className="mt-6 text-sm text-neutral-600 dark:text-neutral-400">
