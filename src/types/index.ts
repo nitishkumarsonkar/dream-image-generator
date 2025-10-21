@@ -20,6 +20,9 @@ export type Preset = {
   overlayText?: { placeholder: string; maxChars: number };
 };
 
+// Export advanced preset types
+export * from './presets';
+
 // ===== USER TYPES =====
 export type AppUser = User | null;
 
@@ -152,31 +155,17 @@ export interface ScrollableProps {
   selectedPreset: PresetKey | null;
   showEmpty: boolean;
   examplePrompts: string[];
-  savedNotes: string;
-  notes: string;
-  generatedImages: string[];
-  submittedNotes: string;
+  messages: ChatMessage[];
   isLoading: boolean;
   error: string;
-  files: File[];
-  selectedGeneratedIndex: number;
-  setSelectedGeneratedIndex: (index: number) => void;
   aspectRatio: string;
   onInsertPrompt: (txt: string) => void;
-  onClearResults: () => void;
-  loadedSession?: {
-    promptText: string;
-    inputImages: string[];
-    outputImages: string[];
-  } | null;
+  onClearMessages: () => void;
+  onRefineImage?: (imageUrl: string, sourceMessage: ChatMessage) => void;
 }
 
 // Fixed textarea component props
 export interface FixedTextareaProps {
-  files: File[];
-  setFiles: (files: File[]) => void;
-  notes: string;
-  setNotes: (notes: string) => void;
   aspectLabel?: string;
   aspectTooltip?: string;
   aspectRatio: string;
@@ -184,15 +173,12 @@ export interface FixedTextareaProps {
   user: AppUser;
   selectedPreset: PresetKey | null;
   customPreset: string;
-  onResultsGenerated: (results: {
-    submittedNotes: string;
-    generatedImages: string[];
-    savedNotes: string;
-  }) => void;
+  onMessageSent: (message: ChatMessage) => void;
   onError: (error: string) => void;
   onLoadingChange: (loading: boolean) => void;
   onSelectPreset: (key: PresetKey) => void;
   onApplyCustomPreset: (text: string) => void;
+  presetAppend?: PresetAppend;
 }
 
 // Auth guard component props
@@ -245,6 +231,19 @@ export interface GenerateApiResponse {
 export interface PresetAppend {
   text: string;
   nonce: number;
+}
+
+// ===== CHAT MESSAGE TYPES =====
+export interface ChatMessage {
+  id: string;
+  type: 'user' | 'assistant';
+  timestamp: Date;
+  text?: string;
+  images?: string[]; // For user input images (base64/file URLs)
+  generatedImages?: string[]; // For AI generated images
+  isLoading?: boolean;
+  chainSourceId?: string; // ID of the source message for chaining
+  promptId?: string; // Database prompt ID for tracking
 }
 
 // ===== CONSOLIDATED DATABASE TYPE =====
