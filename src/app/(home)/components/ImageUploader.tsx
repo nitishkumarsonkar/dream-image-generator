@@ -240,23 +240,11 @@ function ImageUploader({
               disabled={disabled}
             />
             <div
-              className="relative button-group"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                width: "100%",
-                minHeight: 60,
-                gap: 8,
-              }}
+              className="relative button-group flex  w-full min-h-[60px] gap-2"
             >
               {/* Left: Add Images */}
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  flexShrink: 0,
-                }}
+                className="flex items-center gap-2 flex-nowrap whitespace-nowrap"
               >
                 <button
                   type="button"
@@ -286,23 +274,16 @@ function ImageUploader({
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M4 12h14M12 5l7 7-7 7"
+                      d="M12 4v16m8-8H4"
                     />
                   </svg>
-                  <span className="text-xs font-medium">Add Images</span>
+                  <span className="hidden sm:inline text-xs font-medium">Add Images</span>
                 </button>
               </div>
 
               {/* Right: Aspect Ratio + Submit */}
               <div
-                style={{
-                  marginLeft: "auto",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  flexWrap: "nowrap",
-                  whiteSpace: "nowrap",
-                }}
+                className="ml-auto flex items-center gap-2 flex-nowrap whitespace-nowrap mr-[1%]"
               >
                 {/* Aspect ratio button with popup */}
                 <div
