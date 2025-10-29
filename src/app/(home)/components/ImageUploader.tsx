@@ -17,7 +17,7 @@ type ImageUploaderProps = {
   aspectRatio?: string; // current aspect ratio (e.g., "16:9")
   onChangeAspectRatio?: (ratio: string) => void;
   presetAppend?: { text: string; nonce: number };
-  onOpenPresets?: () => void; // New prop to open presets modal
+  // onOpenPresets?: () => void; // New prop to open presets modal
   hasActivePreset?: boolean; // New prop to show active preset indicator
   className?: string;
 };
@@ -38,7 +38,7 @@ function ImageUploader({
   onChangeAspectRatio,
   className,
   presetAppend,
-  onOpenPresets,
+  // onOpenPresets,
   hasActivePreset = false,
 }: ImageUploaderProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -240,23 +240,11 @@ function ImageUploader({
               disabled={disabled}
             />
             <div
-              className="relative button-group"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                width: "100%",
-                minHeight: 60,
-                gap: 8,
-              }}
+              className="relative button-group flex  w-full min-h-[60px] gap-2"
             >
               {/* Left: Add Images */}
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  flexShrink: 0,
-                }}
+                className="flex items-center gap-2 flex-nowrap whitespace-nowrap"
               >
                 <button
                   type="button"
@@ -286,59 +274,16 @@ function ImageUploader({
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M4 12h14M12 5l7 7-7 7"
+                      d="M12 4v16m8-8H4"
                     />
                   </svg>
-                  <span className="text-xs font-medium">Add Images</span>
+                  <span className="hidden sm:inline text-xs font-medium">Add Images</span>
                 </button>
-
-                {/* Presets Button */}
-                {onOpenPresets && (
-                  <button
-                    type="button"
-                    onClick={onOpenPresets}
-                    disabled={isSubmitting || disabled}
-                    className="add-images-btn shrink-0 relative"
-                    title="Choose preset"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="icon-svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-                      />
-                    </svg>
-                    <span className="text-xs font-medium">Presets</span>
-                    {hasActivePreset && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full border-2 border-white dark:border-neutral-900 shadow-soft animate-pulse" />
-                    )}
-                  </button>
-                )}
               </div>
 
               {/* Right: Aspect Ratio + Submit */}
               <div
-                style={{
-                  marginLeft: "auto",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  flexWrap: "nowrap",
-                  whiteSpace: "nowrap",
-                }}
+                className="ml-auto flex items-center gap-2 flex-nowrap whitespace-nowrap mr-[1%]"
               >
                 {/* Aspect ratio button with popup */}
                 <div
@@ -364,8 +309,8 @@ function ImageUploader({
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      width: 30,
-                      height: 30,
+                      width: 45,
+                      height: 45,
                       flexShrink: 0,
                     }}
                   >
@@ -374,7 +319,7 @@ function ImageUploader({
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="1"
                       className="icon-svg"
                       style={{ width: 36, height: 36 }}
                     >
@@ -384,7 +329,7 @@ function ImageUploader({
                   </button>
 
                   {(aspectLabel || aspectRatio) && (
-                    <span className="hidden sm:inline text-[10px] font-semibold opacity-90 px-2 py-1 rounded-md bg-gradient-to-r from-accent-100 to-accent-200 dark:from-accent-950/50 dark:to-accent-900/50 text-accent-700 dark:text-accent-300 border border-accent-300 dark:border-accent-800 whitespace-nowrap shadow-sm">
+                    <span className="hidden sm:inline text-[20px] font-semibold opacity-90 px-2 py-1 rounded-md bg-gradient-to-r from-accent-100 to-accent-200 dark:from-accent-900/50 text-accent-700 dark:text-accent-500 border border-accent-300 dark:border-accent-800 whitespace-nowrap shadow-sm">
                       {aspectLabel || aspectRatio}
                     </span>
                   )}
@@ -479,9 +424,9 @@ function ImageUploader({
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    width: 60,
-                    height: 60,
-                    borderRadius: "50%",
+                    width: 45,
+                    height: 45,
+                    borderRadius: "25%",
                     backgroundColor: "transparent",
                     border: "none",
                     flexShrink: 0,
@@ -496,7 +441,6 @@ function ImageUploader({
                     className="icon-svg"
                     style={{ width: 36, height: 36 }}
                   >
-                    <circle cx="12" cy="12" r="9" />
                     <line
                       x1="8"
                       y1="12"

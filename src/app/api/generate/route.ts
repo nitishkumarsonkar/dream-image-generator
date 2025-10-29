@@ -3,6 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@/app/utils/supabase/server';
 import { decode } from 'base64-arraybuffer';
 import { hasEnoughCredits, deductCredits } from '@/utils/supabase/credits';
+import { logError, logInfo, logUserAction, logCreditOperation } from '@/lib/logger';
 
 type PartOut = { type: 'text'; text: string } | { type: 'image'; mimeType: string; data: string };
 
@@ -16,12 +17,14 @@ const IMAGE_GENERATION_COST = 5; // Credit cost for generating an image
 // JSON POST payloads.
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     // Check if user is authenticated
     if (!user) {
+      logInfo('Unauthorized image generation attempt', { ip: request.headers.get('x-forwarded-for') });
       return NextResponse.json(
         { error: 'Unauthorized. Please sign in to generate images.' },
         { status: 401 }
@@ -31,6 +34,7 @@ export async function POST(request: Request) {
     // Check if user has enough credits
     const enoughCredits = await hasEnoughCredits(user.id, IMAGE_GENERATION_COST, supabase);
     if (!enoughCredits) {
+      logCreditOperation('check', user.id, IMAGE_GENERATION_COST, 0);
       return NextResponse.json(
         { error: 'Insufficient credits', requiredCredits: IMAGE_GENERATION_COST },
         { status: 402 } // Payment Required
@@ -39,7 +43,9 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GENAI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!apiKey) {
-      console.error('GENAI API key missing. Set GENAI_API_KEY in environment');
+      logError('GENAI API key missing', new Error('API Key not configured'), user.id, {
+        component: 'image-generation'
+      });
       return NextResponse.json({ error: 'Server API key not configured. Set GENAI_API_KEY' }, { status: 500 });
     }
 
@@ -83,6 +89,12 @@ export async function POST(request: Request) {
 
     contents.push({ text: prompt });
 
+    logUserAction('image_generation_initiated', user.id, {
+      promptLength: prompt.length,
+      inputImages: inputImagesB64?.length || 0,
+      aspectRatio: aspectRatio || 'default'
+    });
+
     console.log('Calling GoogleGenAI.generateContent', { model: 'gemini-2.5-flash-image', parts: contents.length, aspectRatio });
 
     let response: any;
@@ -100,7 +112,13 @@ export async function POST(request: Request) {
         config
       });
     } catch (callErr: any) {
-      console.error('generateContent call failed:', callErr);
+      logError('GoogleGenAI generateContent failed', callErr, user.id, {
+        component: 'image-generation',
+        promptLength: prompt.length,
+        aspectRatio: aspectRatio || 'default',
+        errorStatus: callErr?.status,
+        errorDetails: callErr?.details
+      });
       const detail = {
         message: callErr?.message,
         status: callErr?.status,
@@ -123,7 +141,7 @@ export async function POST(request: Request) {
     // Deduct credits for successful image generation
     if (user) {
       try {
-        await deductCredits({
+        const newBalance = await deductCredits({
           userId: user.id,
           amount: IMAGE_GENERATION_COST,
           type: 'image_generation',
@@ -134,8 +152,13 @@ export async function POST(request: Request) {
             aspectRatio: aspectRatio || 'default',
           },
         }, supabase);
+
+        logCreditOperation('deduct', user.id, IMAGE_GENERATION_COST, newBalance);
       } catch (creditError) {
-        console.error('Error deducting credits:', creditError);
+        logError('Failed to deduct credits', creditError as Error, user.id, {
+          component: 'credit-system',
+          amount: IMAGE_GENERATION_COST
+        });
         return NextResponse.json(
           { error: 'Failed to deduct credits', details: creditError instanceof Error ? creditError.message : 'Unknown error' },
           { status: 500 }
@@ -216,18 +239,38 @@ export async function POST(request: Request) {
           if (imagesError) throw imagesError;
         }
 
+        logInfo('Successfully saved generation to database', {
+          userId: user.id,
+          promptId: newPromptId,
+          imagesCount: imagesToInsert.length
+        });
+
         console.log(`Successfully saved generation ${newPromptId} for user ${user.id}`);
 
       } catch (dbError) {
-        console.error('Failed to save generation to Supabase:', dbError);
+        logError('Failed to save generation to Supabase', dbError as Error, user.id, {
+          component: 'database',
+          operation: 'save_generation'
+        });
         // Do not block the user response for a DB error
       }
     }
     // --- End of Supabase save ---
 
+    const duration = Date.now() - startTime;
+    logInfo('Image generation completed', {
+      userId: user.id,
+      duration,
+      outputImages: parts.filter(p => p.type === 'image').length
+    });
+
     return NextResponse.json({ parts, debug: { candidates: !!response.candidates } });
   } catch (err: any) { 
-    console.error('API generate unexpected error:', err);
+    logError('API generate unexpected error', err, undefined, {
+      component: 'image-generation',
+      url: request.url,
+      method: request.method
+    });
     return NextResponse.json({ error: 'Unexpected server error', message: err?.message || String(err) }, { status: 500 });
   }
 }

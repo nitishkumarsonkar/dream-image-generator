@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Iterative Image Creator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+        .card { backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.85); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); }
+        .loading-spinner { border-top-color: #3b82f6; -webkit-animation: spin 1s linear infinite; animation: spin 1s linear infinite; }
+        @-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .prompt-box { border-left: 4px solid #3b82f6; padding-left: 1rem; }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex items-start justify-center">
+
+    <div id="app-container" class="w-full max-w-5xl">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-blue-900 tracking-tight">Image Creation Chain (Iterative Editing)</h1>
+            <p class="mt-2 text-lg text-gray-600">Demonstrating multi-step, conversational image generation using the `gemini-2.5-flash-image-preview` model.</p>
+        </header>
+
+        <div class="card p-6 md:p-10 rounded-xl">
+            <button id="start-chain-btn" onclick="startImageChain()" class="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-150 ease-in-out shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed">
+                Start 3-Step Image Chain
+            </button>
+
+            <div id="results-container" class="mt-8 space-y-8">
+                <!-- Results will be injected here -->
+            </div>
+
+            <div id="status-message" class="mt-6 text-center text-sm font-medium text-gray-700">
+                Awaiting user input...
+            </div>
+            
+            <div id="error-box" class="hidden mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative" role="alert">
+                <strong class="font-bold">Error:</strong>
+                <span id="error-text" class="block sm:inline"></span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- MANDATORY FIREBASE/CANVAS SETUP ---
+        // Global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let app, db, auth;
+        const apiKey = ""; // API Key for Google Generative AI
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+        const MODEL_ID = 'gemini-2.5-flash-image-preview';
+        
+        // Error handling function
+        const errorBox = document.getElementById('error-box');
+        const errorText = document.getElementById('error-text');
+
+        function handleError(message, error) {
+            console.error(message, error);
+            errorText.textContent = message;
+            errorBox.classList.remove('hidden');
+            document.getElementById('start-chain-btn').disabled = false;
+            updateStatus("Operation failed. See error box for details.", 'text-red-600');
+        }
+
+        function updateStatus(message, colorClass = 'text-gray-700') {
+            const statusElement = document.getElementById('status-message');
+            statusElement.className = `mt-6 text-center text-sm font-medium ${colorClass}`;
+            statusElement.textContent = message;
+        }
+
+        // Utility to fetch with exponential backoff
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) {
+                        return response;
+                    }
+                    if (response.status === 429 && i < maxRetries - 1) { // Rate limit or transient error
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                        updateStatus(`Rate limited or transient error (Code: ${response.status}). Retrying in ${Math.ceil(delay / 1000)}s...`, 'text-yellow-600');
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                    // For permanent errors (4xx, 5xx non-transient)
+                    const errorJson = await response.json();
+                    throw new Error(`API Request Failed: ${response.status} - ${JSON.stringify(errorJson)}`);
+
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        throw error; // Re-throw if maximum retries reached
+                    }
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    updateStatus(`Request failed: ${error.message}. Retrying in ${Math.ceil(delay / 1000)}s...`, 'text-yellow-600');
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            throw new Error("Maximum number of retries reached.");
+        }
+        
+        // Function to create a step visualization in the UI
+        function createStepElement(step, prompt) {
+            const stepHtml = `
+                <div id="step-${step}" class="step p-6 rounded-xl border border-blue-200">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="flex items-center justify-center w-8 h-8 bg-blue-600 text-white font-bold rounded-full">${step}</div>
+                        <h2 class="text-xl font-semibold text-blue-800">Step ${step}: Iteration</h2>
+                    </div>
+                    <div class="prompt-box bg-gray-50 p-4 rounded-lg mb-4 text-gray-700 text-sm italic">
+                        <p class="font-bold text-gray-900 not-italic mb-1">Prompt:</p>
+                        <p>${prompt}</p>
+                    </div>
+                    <div id="image-container-${step}" class="flex flex-col items-center justify-center h-64 bg-gray-200 rounded-lg shadow-inner">
+                        <div id="loading-${step}" class="loading-spinner w-10 h-10 border-4 border-gray-200 rounded-full"></div>
+                        <p id="loading-text-${step}" class="mt-2 text-blue-600 font-medium">Generating...</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('results-container').insertAdjacentHTML('beforeend', stepHtml);
+        }
+
+        // Function to display the result of a single step
+        function displayStepResult(step, base64Image) {
+            const container = document.getElementById(`image-container-${step}`);
+            container.innerHTML = '';
+            container.classList.remove('bg-gray-200', 'shadow-inner', 'h-64');
+            container.classList.add('bg-gray-100', 'p-2');
+
+            const imageUrl = `data:image/png;base64,${base64Image}`;
+            const imgElement = document.createElement('img');
+            imgElement.src = imageUrl;
+            imgElement.alt = `Generated image from Step ${step}`;
+            imgElement.className = 'w-full h-auto max-h-[512px] object-contain rounded-lg shadow-md';
+            container.appendChild(imgElement);
+        }
+
+        // Main function to run the image generation chain
+        window.startImageChain = async function() {
+            document.getElementById('start-chain-btn').disabled = true;
+            document.getElementById('results-container').innerHTML = '';
+            errorBox.classList.add('hidden');
+            updateStatus("Starting the 3-step image generation chain...");
+
+            let currentBase64Image = null;
+
+            const steps = [
+                { 
+                    step: 1, 
+                    prompt: "A friendly, whimsical cartoon sloth wearing a tiny red bowtie, sitting on a branch. Use a soft pastel color palette.",
+                    description: "Initial Generation"
+                },
+                { 
+                    step: 2, 
+                    prompt: "Take the previous image and change the background to a vibrant purple neon rainforest. Keep the sloth's appearance the same.",
+                    description: "Style Edit (Background Change)"
+                },
+                { 
+                    step: 3, 
+                    prompt: "Now, give the sloth a small, glowing cup of hot cocoa in its paw, steam rising from the mug. Increase the overall detail.",
+                    description: "Detail Addition (Object/Feature)"
+                }
+            ];
+
+            for (const { step, prompt, description } of steps) {
+                createStepElement(step, prompt);
+                updateStatus(`Processing Step ${step}: ${description}...`, 'text-blue-600');
+
+                try {
+                    const contents = [];
+                    // For steps 2 and 3, add the previous image as input
+                    if (currentBase64Image) {
+                        contents.push({
+                            inlineData: {
+                                mimeType: 'image/png',
+                                data: currentBase64Image
+                            }
+                        });
+                    }
+                    // Add the new text prompt
+                    contents.push({ text: prompt });
+
+                    const payload = {
+                        contents: [{ role: "user", parts: contents }],
+                        generationConfig: {
+                            responseModalities: ["TEXT", "IMAGE"],
+                            // Optional: for better quality, though not strictly required for iterative editing
+                            // imageGenerationConfig: { numberOfImages: 1 } 
+                        }
+                    };
+
+                    const response = await fetchWithRetry(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    const candidate = result?.candidates?.[0];
+
+                    if (candidate) {
+                        const imagePart = candidate.content?.parts?.find(p => p.inlineData?.mimeType?.startsWith('image/'));
+                        
+                        if (imagePart?.inlineData?.data) {
+                            currentBase64Image = imagePart.inlineData.data;
+                            displayStepResult(step, currentBase64Image);
+                            updateStatus(`Step ${step} complete. Preparing for next step...`, 'text-green-600');
+                        } else {
+                             // Handle case where API response is missing image data but call succeeded
+                             handleError(`Step ${step} successful but no image data found in response. Text Response: ${candidate.content?.parts?.[0]?.text}`, result);
+                             return; // Stop chain on missing data
+                        }
+                    } else {
+                        throw new Error("Received an invalid or empty response from the API.");
+                    }
+
+                } catch (error) {
+                    handleError(`Failed during Step ${step} execution.`, error);
+                    return; // Stop the chain if an error occurs
+                }
+            }
+
+            updateStatus("Image generation chain successfully completed!", 'text-green-700 font-bold');
+            document.getElementById('start-chain-btn').disabled = false;
+        }
+
+        // --- Firebase Initialization (Mandatory Boilerplate) ---
+        async function initializeFirebase() {
+            if (!firebaseConfig) {
+                console.warn("Firebase config not available. Skipping Firestore initialization.");
+                return;
+            }
+            try {
+                // setLogLevel('debug'); // Optional: for debugging firestore
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                const userId = auth.currentUser?.uid || 'anonymous-user';
+                console.log(`Firebase initialized. User ID: ${userId}. App ID: ${appId}`);
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+            }
+        }
+
+        window.onload = initializeFirebase;
+    </script>
+</body>
+</html>

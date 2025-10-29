@@ -304,7 +304,7 @@ export default function ImageGenerationHistory({
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-20 lg:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-20 transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
         />
       )}
