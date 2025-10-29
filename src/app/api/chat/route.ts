@@ -3,6 +3,7 @@ import { GoogleGenAI, type Content } from '@google/genai';
 import { createClient } from '@/utils/supabase/server';
 import { IMAGE_PROMPT_SYSTEM_INSTRUCTION } from '@/lib/gemini-config';
 import { hasEnoughCredits, deductCredits } from '@/utils/supabase/credits';
+import { logError, logInfo, logUserAction, logCreditOperation, logWarn } from '@/lib/logger';
 
 // Initialize Gemini AI client
 const ai = new GoogleGenAI({
@@ -24,12 +25,20 @@ interface ChatRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  let userId: string | undefined;
+  
   try {
     // Parse request body
     const body: ChatRequestBody = await request.json();
     const { message: userMessage, sessionId } = body;
 
     if (!userMessage || !sessionId) {
+      logWarn('Invalid chat request', { 
+        hasMessage: !!userMessage, 
+        hasSessionId: !!sessionId,
+        ip: request.headers.get('x-forwarded-for')
+      });
       return NextResponse.json(
         { error: 'Message and sessionId are required' },
         { status: 400 }
@@ -41,20 +50,34 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
+      logInfo('Unauthorized chat attempt', { 
+        sessionId,
+        authError: authError?.message,
+        ip: request.headers.get('x-forwarded-for')
+      });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    userId = user.id;
+
     // Check if user has enough credits
     const enoughCredits = await hasEnoughCredits(user.id, CHAT_CREDIT_COST, supabase);
     if (!enoughCredits) {
+      logCreditOperation('check', user.id, CHAT_CREDIT_COST, 0);
       return NextResponse.json(
         { error: 'Insufficient credits', requiredCredits: CHAT_CREDIT_COST },
         { status: 402 } // Payment Required
       );
     }
+
+    logUserAction('chat_message_sent', user.id, {
+      sessionId,
+      messageLength: userMessage.length,
+      messagePreview: userMessage.slice(0, 50)
+    });
 
     // Fetch all past messages for this session from Supabase
     const { data: pastMessages, error: fetchError } = await supabase
@@ -65,7 +88,10 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: true });
 
     if (fetchError) {
-      console.error('Error fetching messages:', fetchError);
+      logError('Failed to fetch chat messages', fetchError, user.id, {
+        component: 'chat-api',
+        sessionId
+      });
       return NextResponse.json(
         { error: 'Failed to fetch message history' },
         { status: 500 }
@@ -108,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     // Deduct credits for the AI chat message
     try {
-      await deductCredits({
+      const newBalance = await deductCredits({
         userId: user.id,
         amount: CHAT_CREDIT_COST,
         type: 'ai_chat',
@@ -118,8 +144,14 @@ export async function POST(request: NextRequest) {
           messagePreview: userMessage.slice(0, 50),
         },
       }, supabase);
+
+      logCreditOperation('deduct', user.id, CHAT_CREDIT_COST, newBalance);
     } catch (creditError) {
-      console.error('Error deducting credits:', creditError);
+      logError('Failed to deduct credits for chat', creditError as Error, user.id, {
+        component: 'credit-system',
+        amount: CHAT_CREDIT_COST,
+        sessionId
+      });
       return NextResponse.json(
         { error: 'Failed to deduct credits', details: creditError instanceof Error ? creditError.message : 'Unknown error' },
         { status: 500 }
@@ -137,7 +169,11 @@ export async function POST(request: NextRequest) {
       });
 
     if (insertUserError) {
-      console.error('Error saving user message:', insertUserError);
+      logError('Failed to save user chat message', insertUserError, user.id, {
+        component: 'chat-api',
+        sessionId,
+        operation: 'save_user_message'
+      });
       // Continue anyway - we don't want to fail the request
     }
 
@@ -152,7 +188,11 @@ export async function POST(request: NextRequest) {
       });
 
     if (insertModelError) {
-      console.error('Error saving model message:', insertModelError);
+      logError('Failed to save model chat message', insertModelError, user.id, {
+        component: 'chat-api',
+        sessionId,
+        operation: 'save_model_message'
+      });
       // Continue anyway - we don't want to fail the request
     }
 
@@ -170,7 +210,11 @@ export async function POST(request: NextRequest) {
         });
 
       if (sessionError && sessionError.code !== '23505') { // Ignore duplicate key errors
-        console.error('Error creating session:', sessionError);
+        logError('Failed to create chat session', sessionError, user.id, {
+          component: 'chat-api',
+          sessionId,
+          operation: 'create_session'
+        });
       }
     } else {
       // Update session timestamp to keep it at top of history
@@ -182,13 +226,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Return the model's response
+    const duration = Date.now() - startTime;
+    logInfo('Chat message processed successfully', {
+      userId: user.id,
+      sessionId,
+      duration,
+      responseLength: modelResponse?.length || 0
+    });
+
     return NextResponse.json({
       response: modelResponse,
       sessionId,
     });
 
   } catch (error) {
-    console.error('Error in chat API:', error);
+    logError('Chat API error', error as Error, userId, {
+      component: 'chat-api',
+      endpoint: '/api/chat',
+      method: 'POST',
+      duration: Date.now() - startTime
+    });
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

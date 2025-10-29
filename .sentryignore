@@ -1,0 +1,7 @@
+# Sentry will not upload source maps for these files
+node_modules/
+.next/
+.env*
+logs/
+*.log
+.git/

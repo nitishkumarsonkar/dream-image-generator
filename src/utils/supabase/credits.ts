@@ -10,6 +10,7 @@
 
 import { createClient } from './client';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { logError, logInfo, logWarn, logCreditOperation } from '@/lib/logger';
 
 // Type definitions for better type safety
 export type TransactionType = 
