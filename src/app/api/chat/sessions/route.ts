@@ -32,9 +32,8 @@ export async function GET(request: NextRequest) {
       .order('updated_at', { ascending: false });
 
     if (fetchError) {
-      logError('Failed to fetch chat sessions', fetchError, {
+      logError('Failed to fetch chat sessions', fetchError, user.id, {
         component: 'chat-sessions',
-        userId: user.id,
         operation: 'fetch_sessions'
       });
       return NextResponse.json(
@@ -53,9 +52,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ sessions });
 
   } catch (error) {
-    logError('Chat sessions GET API error', error as Error, {
+    logError('Chat sessions GET API error', error as Error, userId, {
       component: 'chat-sessions',
-      userId,
       endpoint: '/api/chat/sessions',
       method: 'GET',
       duration: Date.now() - startTime
@@ -127,9 +125,8 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (updateError) {
-        logError('Failed to update chat session', updateError, {
+        logError('Failed to update chat session', updateError, user.id, {
           component: 'chat-sessions',
-          userId: user.id,
           sessionId,
           operation: 'update_session'
         });
@@ -160,9 +157,8 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (insertError) {
-        logError('Failed to create chat session', insertError, {
+        logError('Failed to create chat session', insertError, user.id, {
           component: 'chat-sessions',
-          userId: user.id,
           sessionId,
           operation: 'create_session'
         });
@@ -181,18 +177,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ session: newSession });
     }
 
-    const duration = Date.now() - startTime;
-    logInfo('Chat session operation completed', {
-      userId: user.id,
-      sessionId,
-      operation: existingSession ? 'update' : 'create',
-      duration
-    });
-
   } catch (error) {
-    logError('Chat sessions POST API error', error as Error, {
+    logError('Chat sessions POST API error', error as Error, userId, {
       component: 'chat-sessions',
-      userId,
       endpoint: '/api/chat/sessions',
       method: 'POST',
       duration: Date.now() - startTime
@@ -249,9 +236,8 @@ export async function DELETE(request: NextRequest) {
       .eq('user_id', user.id);
 
     if (deleteError) {
-      logError('Failed to delete chat session', deleteError, {
+      logError('Failed to delete chat session', deleteError, user.id, {
         component: 'chat-sessions',
-        userId: user.id,
         sessionId,
         operation: 'delete_session'
       });
@@ -275,9 +261,8 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    logError('Chat sessions DELETE API error', error as Error, {
+    logError('Chat sessions DELETE API error', error as Error, userId, {
       component: 'chat-sessions',
-      userId,
       endpoint: '/api/chat/sessions',
       method: 'DELETE',
       duration: Date.now() - startTime

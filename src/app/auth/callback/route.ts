@@ -1,6 +1,9 @@
 import { createClient } from '@/app/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const { searchParams, origin } = new URL(request.url)
