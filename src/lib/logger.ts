@@ -3,19 +3,16 @@ import * as Sentry from '@sentry/nextjs';
 // Edge Runtime detection
 const isEdgeRuntime = () => {
   try {
-    return process.env.NEXT_RUNTIME === 'edge' ||
-           typeof window !== 'undefined';
+    return process.env.NEXT_RUNTIME === 'edge';
   } catch {
-    return true; // Assume edge runtime if we can't detect
+    return false;
   }
 };
 
 const isServerSide = () => {
   try {
     return typeof window === 'undefined' && 
-           typeof process !== 'undefined' &&
-           process.versions &&
-           process.versions.node;
+           typeof process !== 'undefined';
   } catch {
     return false;
   }
@@ -63,34 +60,12 @@ const generateTraceId = (): string => {
 };
 
 // Write to file (Server-side only, completely safe for client-side)
+// Note: File writing is disabled to support Edge Runtime compatibility
+// Logs are only sent to console and Sentry
 const writeToFile = async (logEntry: LogEntry): Promise<void> => {
-  // Complete safety guards - return early if not in proper server environment
-  try {
-    if (typeof window !== 'undefined') return; // Browser
-    if (typeof process === 'undefined') return; // No process object
-    if (!process.versions || !process.versions.node) return; // Not Node.js
-    if (process.env.NEXT_RUNTIME === 'edge') return; // Edge runtime
-    if (isEdgeRuntime()) return; // Edge runtime check
-    
-    // Dynamically require only in safe server environment
-    const fs = eval('require')('fs/promises');
-    const path = eval('require')('path');
-    
-    const logsDir = path.join(process.cwd(), 'logs');
-    const logFile = path.join(logsDir, `app-${new Date().toISOString().split('T')[0]}.log`);
-    
-    // Ensure logs directory exists
-    try {
-      await fs.access(logsDir);
-    } catch {
-      await fs.mkdir(logsDir, { recursive: true });
-    }
-    
-    const logLine = JSON.stringify(logEntry) + '\n';
-    await fs.appendFile(logFile, logLine);
-  } catch (error) {
-    // Silently ignore all errors to prevent logging loops
-  }
+  // File logging disabled for Edge Runtime compatibility
+  // All logs go to console and Sentry instead
+  return;
 };
 
 // Core logging functions

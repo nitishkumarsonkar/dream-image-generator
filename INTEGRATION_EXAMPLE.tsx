@@ -135,6 +135,8 @@ export default function HomePage() {
 
 function SidebarWithPresets() {
   const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false);
+  // In your actual implementation, get user from your auth context or state
+  const [user, setUser] = useState<AppUser>(null);
 
   return (
     <aside className="sidebar">
@@ -158,7 +160,7 @@ function SidebarWithPresets() {
         onSelectPreset={(preset, userInput) => {
           // Handle preset selection
         }}
-        userId={user?.id}
+        userId={user?.id || undefined}
       />
     </aside>
   );
@@ -211,6 +213,8 @@ function ImageUploaderWithPresets({
 function HomePageWithImageUploader() {
   const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false);
   const [activePreset, setActivePreset] = useState<UserPreset | null>(null);
+  // In your actual implementation, get user from your auth context or state
+  const [user, setUser] = useState<AppUser>(null);
 
   return (
     <div>
