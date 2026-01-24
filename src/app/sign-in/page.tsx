@@ -129,6 +129,16 @@ export default function SignInPage() {
               />
             </div>
 
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => router.push('/reset-password')}
+                className="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 mt-2"
+              >
+                Forgot password?
+              </button>
+            </div>
+
             {message && (
               <div className={`text-sm font-medium p-3 rounded-lg animate-slide-down ${message.includes('error') || message.includes('Error') ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800'}`}>
                 {message}
