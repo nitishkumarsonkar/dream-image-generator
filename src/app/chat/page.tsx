@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import AuthGuard from '@/components/AuthGuard';
-import ChatHistory from '@/components/ChatHistory';
-import MarkdownText from '@/components/MarkdownText';
+import AuthGuard from '@/components/features/auth/AuthGuard';
+import ChatHistory from '@/components/features/chat/ChatHistory';
+import MarkdownText from '@/components/common/MarkdownText';
 
 interface Message {
   role: 'user' | 'model';
