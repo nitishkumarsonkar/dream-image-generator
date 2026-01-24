@@ -12,12 +12,16 @@ interface PromptHistoryItem {
 
 interface ImageGenerationHistoryProps {
   onSelectPrompt: (promptData: PromptHistoryItem) => void;
+  onNewChat?: () => void;
   className?: string;
+  onOpenChange?: (isOpen: boolean) => void; // Add this to communicate state up
 }
 
 export default function ImageGenerationHistory({
   onSelectPrompt,
+  onNewChat,
   className,
+  onOpenChange,
 }: ImageGenerationHistoryProps): JSX.Element {
   const [prompts, setPrompts] = useState<PromptHistoryItem[]>([]);
   const [isOpen, setIsOpen] = useState(true);
@@ -69,7 +73,13 @@ export default function ImageGenerationHistory({
     if (typeof window === "undefined") return;
     const isDesktop = window.matchMedia("(min-width: 768px)").matches;
     setIsOpen(isDesktop);
+    onOpenChange?.(isDesktop);
   }, []);
+
+  // Sync state changes with parent
+  useEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [isOpen]);
 
   // Fetch prompts on mount
   useEffect(() => {
@@ -161,7 +171,6 @@ export default function ImageGenerationHistory({
         )}
       </button>
 
-      {/* Sidebar */}
       <aside
         className={`
           fixed left-0 top-16 h-[calc(100vh-4rem)] w-80 z-30
@@ -173,16 +182,13 @@ export default function ImageGenerationHistory({
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-4 border-b border-neutral-200/50 dark:border-neutral-800/50 relative bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-950/30 dark:to-accent-950/30">
-            <h2 className="text-lg font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent flex items-center gap-2">
-              <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Generation History
+          <div className="px-5 py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 flex flex-col gap-1">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 flex items-center gap-2">
+              History
+              <span className="text-xs normal-case bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-0.5 rounded-full font-medium ml-auto">
+                {prompts.length}
+              </span>
             </h2>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 font-medium">
-              {prompts.length} prompt{prompts.length !== 1 ? 's' : ''}
-            </p>
           </div>
 
           {/* Prompts List */}
@@ -195,17 +201,17 @@ export default function ImageGenerationHistory({
                 </div>
               </div>
             ) : prompts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 text-center px-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary-100 to-accent-100 dark:from-primary-950/30 dark:to-accent-950/30 flex items-center justify-center mb-3">
-                  <svg className="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <div className="flex flex-col items-center justify-center h-[50vh] text-center px-6">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-neutral-50 dark:from-primary-900/20 dark:to-neutral-900/20 flex items-center justify-center mb-4 ring-1 ring-inset ring-primary-100 dark:ring-primary-800/30">
+                  <svg className="w-10 h-10 text-primary-300 dark:text-primary-700 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  No prompts yet
-                </p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                  Generate images to create history
+                <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">
+                  No creations yet
+                </h3>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                  Start generating to see your history build up here.
                 </p>
               </div>
             ) : (
@@ -266,36 +272,27 @@ export default function ImageGenerationHistory({
           </div>
 
           {/* Refresh Button */}
-          <div className="p-3 border-t border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50 dark:bg-neutral-900/50 space-y-2">
+          <div className="p-3 border-t border-neutral-200/50 dark:border-neutral-800/50 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm grid grid-cols-2 gap-2">
             <button
               onClick={fetchPrompts}
               disabled={isLoading}
-              className="w-full px-4 py-2.5 text-sm font-semibold text-primary-700 dark:text-primary-300 bg-white dark:bg-neutral-800 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950/30 border border-primary-200 dark:border-primary-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 shadow-soft"
+              className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              title="Refresh History"
             >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-                  Refreshing...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Refresh History
-                </span>
-              )}
+              <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
             </button>
             
-            {/* View All History Button */}
             <a
               href="/history"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-accent-700 dark:text-accent-300 bg-white dark:bg-neutral-800 border border-accent-200 dark:border-accent-800 rounded-lg hover:bg-accent-50 dark:hover:bg-accent-950/30 transition-all duration-300 hover:scale-105 shadow-soft"
+              className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 rounded-lg transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <span>View All</span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
-              View All History
             </a>
           </div>
         </div>

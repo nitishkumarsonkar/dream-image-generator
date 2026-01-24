@@ -179,6 +179,8 @@ export interface FixedTextareaProps {
   onSelectPreset: (key: PresetKey) => void;
   onApplyCustomPreset: (text: string) => void;
   presetAppend?: PresetAppend;
+  onOpenPresets?: () => void;
+  activeAdvancedPreset?: any; // strict typing if possible, else any
 }
 
 // Auth guard component props

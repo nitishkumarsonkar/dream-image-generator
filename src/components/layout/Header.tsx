@@ -24,11 +24,11 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300
+      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
         ${
           active
-            ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 dark:from-primary-500 dark:to-primary-600"
-            : "text-neutral-700 hover:text-primary-600 hover:bg-primary-50 dark:text-neutral-300 dark:hover:text-primary-400 dark:hover:bg-primary-950/30"
+            ? "bg-primary-50 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 ring-1 ring-primary-200 dark:ring-primary-700/50"
+            : "text-neutral-600 hover:text-primary-600 hover:bg-neutral-50 dark:text-neutral-400 dark:hover:text-primary-300 dark:hover:bg-neutral-900"
         }`}
     >
       {item.name}
@@ -125,13 +125,23 @@ export default function Header(): JSX.Element {
         <div className="flex h-16 items-center justify-between">
           {/* Left: Brand + Desktop Nav */}
           <div className="flex items-center gap-6">
+            
+            {/* Sidebar Toggle (Custom Event for now, or just let Sidebar be autonomous) */}
+            {/* In a real app, this state should lift to layout context */}
+            
             <Link
               href="/"
-              className="text-lg font-bold tracking-tight bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent hover:from-primary-500 hover:to-accent-500 transition-all duration-300"
+              className="relative group flex items-center gap-2"
             >
-              Dream Generator
+              <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-105 transition-transform duration-300">
+                D
+              </span>
+              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400 bg-clip-text text-transparent">
+                Dream Gen
+              </span>
             </Link>
 
+            {/* Desktop Nav */}
             <nav
               className="hidden md:flex items-center gap-1"
               aria-label="Main navigation"

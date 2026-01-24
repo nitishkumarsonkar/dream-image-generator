@@ -24,6 +24,8 @@ export default function FixedTextareaChat({
   onSelectPreset,
   onApplyCustomPreset,
   presetAppend,
+  onOpenPresets,
+  activeAdvancedPreset,
 }: FixedTextareaProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [notes, setNotes] = useState<string>("");
@@ -226,7 +228,8 @@ export default function FixedTextareaChat({
           aspectRatio={aspectRatio}
           onChangeAspectRatio={setAspectRatio}
           disabled={!user}
-          hasActivePreset={selectedPreset !== null}
+          hasActivePreset={!!activeAdvancedPreset || selectedPreset !== null}
+          onOpenPresets={onOpenPresets}
         />
       </div>
     </>

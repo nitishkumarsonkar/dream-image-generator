@@ -17,7 +17,7 @@ type ImageUploaderProps = {
   aspectRatio?: string; // current aspect ratio (e.g., "16:9")
   onChangeAspectRatio?: (ratio: string) => void;
   presetAppend?: { text: string; nonce: number };
-  // onOpenPresets?: () => void; // New prop to open presets modal
+  onOpenPresets?: () => void; // New prop to open presets modal
   hasActivePreset?: boolean; // New prop to show active preset indicator
   className?: string;
 };
@@ -38,7 +38,7 @@ function ImageUploader({
   onChangeAspectRatio,
   className,
   presetAppend,
-  // onOpenPresets,
+  onOpenPresets,
   hasActivePreset = false,
 }: ImageUploaderProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -242,7 +242,7 @@ function ImageUploader({
             <div
               className="relative button-group flex  w-full min-h-[60px] gap-2"
             >
-              {/* Left: Add Images */}
+              {/* Left: Add Images & Presets */}
               <div
                 className="flex items-center gap-2 flex-nowrap whitespace-nowrap"
               >
@@ -279,6 +279,31 @@ function ImageUploader({
                   </svg>
                   <span className="hidden sm:inline text-xs font-medium">Add Images</span>
                 </button>
+
+                {/* Presets Button */}
+                {onOpenPresets && (
+                  <button
+                    type="button"
+                    onClick={onOpenPresets}
+                    disabled={disabled}
+                    className="add-images-btn shrink-0"
+                    title="Open Presets Manager"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                    <span className="hidden sm:inline text-xs font-medium">Presets</span>
+                    {hasActivePreset && (
+                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1" />
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* Right: Aspect Ratio + Submit */}

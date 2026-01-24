@@ -346,52 +346,7 @@ export default function HomePage() {
 
       <main className="h-screen pt-16 flex flex-col">
         {/* Advanced Presets Button - Fixed at top */}
-        <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-              Image Generation
-            </h2>
-            
-            {/* Show active preset indicator */}
-            {activeAdvancedPreset && (
-              <div className="px-3 py-1.5 bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-950/30 dark:to-accent-950/30 border border-primary-200 dark:border-primary-800 rounded-lg flex items-center gap-2">
-                <svg className="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-sm font-medium text-primary-900 dark:text-primary-100">
-                  {activeAdvancedPreset.name}
-                </span>
-                <span className="text-xs text-primary-600 dark:text-primary-400">
-                  ({activeAdvancedPreset.aspect_ratio})
-                </span>
-                <button
-                  onClick={() => setActiveAdvancedPreset(null)}
-                  className="ml-1 p-0.5 hover:bg-primary-200 dark:hover:bg-primary-800 rounded transition-colors"
-                  title="Clear preset"
-                >
-                  <svg className="w-3 h-3 text-primary-700 dark:text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            )}
-          </div>
-          
-          {/* Advanced Presets Button */}
-          <button
-            onClick={() => setIsPresetManagerOpen(true)}
-            className="px-4 py-2 bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300 hover:scale-105 flex items-center gap-2"
-            title="Open Advanced Presets Manager"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <span className="hidden sm:inline">My Presets</span>
-            {activeAdvancedPreset && (
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            )}
-          </button>
-        </div>
+
 
         <Scrollable
           user={user}
@@ -420,6 +375,8 @@ export default function HomePage() {
           onSelectPreset={handlePresetSelect}
           onApplyCustomPreset={handleApplyCustom}
           presetAppend={presetAppend}
+          activeAdvancedPreset={activeAdvancedPreset}
+          onOpenPresets={() => setIsPresetManagerOpen(true)}
         />
       </main>
 

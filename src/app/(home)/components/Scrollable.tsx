@@ -245,40 +245,50 @@ export default function Scrollable({
 
         {/* Empty state */}
         {showEmpty && (
-          <div className="text-center py-12">
-            <div className="mb-6">
-              <svg className="mx-auto h-12 w-12 text-neutral-400 dark:text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div className="max-w-lg mx-auto">
-              <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-200 mb-3">
-                Start creating amazing images
+          <div className="flex flex-col items-center py-10 w-full max-w-5xl mx-auto">
+            <div className="text-center mb-10 max-w-2xl">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-neutral-900 via-primary-800 to-neutral-900 dark:from-white dark:via-primary-200 dark:to-white bg-clip-text text-transparent mb-4 tracking-tight">
+                Turn your imagination into reality
               </h2>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
-                {user 
-                  ? "Enter a prompt below to generate your first image. You can also upload reference images to guide the AI."
-                  : "Sign in to start generating AI-powered images with advanced presets and history tracking."
-                }
+              <p className="text-neutral-600 dark:text-neutral-400 text-lg">
+                Enter a prompt below or choose an example to get started. 
+                {!user && " Sign in to save your history."}
               </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {examplePrompts.map((p, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className="px-3 py-2 rounded-lg border border-primary-200 dark:border-primary-800 bg-white dark:bg-neutral-900 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-primary-50 dark:hover:bg-primary-950/30 hover:border-primary-300 dark:hover:border-primary-700 hover:scale-105 transition-all duration-300 shadow-sm hover:shadow-md"
-                    onClick={() => insertPrompt(p)}
-                    title="Click to insert into prompt"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      {p}
-                    </span>
-                  </button>
-                ))}
-              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+              {examplePrompts.map((p, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="group relative p-6 text-left rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden"
+                  onClick={() => insertPrompt(p)}
+                >
+                  {/* Card Background Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary-50/50 dark:to-primary-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  
+                  <div className="relative z-10 flex gap-4">
+                    <div className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary-100 to-accent-100 dark:from-primary-900/30 dark:to-accent-900/30 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                      {['🏔️', '⌚', '🤖', '🌃'][i] || '✨'}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                        {['Nature Scene', 'Product Photography', 'Character Design', 'Cyberpunk Art'][i] || 'Creative Idea'}
+                      </h3>
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed font-medium">
+                        "{p}"
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Arrow Icon */}
+                  <div className="absolute bottom-6 right-6 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-primary-500">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         )}
