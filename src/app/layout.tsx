@@ -1,8 +1,8 @@
 import React from "react";
 import "./globals.css";
-import Header from "../components/Header";
-import { SidebarProvider } from "../components/SidebarPresets";
-import AuthHandler from "../components/AuthHandler";
+import Header from "@/components/layout/Header";
+import { SidebarProvider } from "@/components/features/presets/SidebarPresets";
+import AuthHandler from "@/components/features/auth/AuthHandler";
 
 export const metadata = {
   title: "Image Generator",

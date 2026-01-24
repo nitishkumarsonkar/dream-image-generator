@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import { ScrollableProps, Toast, ChatMessage } from "../../../types";
 import { copyDataUrlToClipboard, inferExtFromDataUrl, nowTs } from "../../../lib/share";
-import ImageRefinementButton from "../../../components/ImageRefinementButton";
-import MarkdownText from "../../../components/MarkdownText";
+import ImageRefinementButton from "@/components/common/ImageRefinementButton";
+import MarkdownText from "@/components/common/MarkdownText";
 
 export default function Scrollable({
   user,

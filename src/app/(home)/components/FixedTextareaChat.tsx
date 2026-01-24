@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from "react";
 import ImageUploader from "./ImageUploader";
 // import PresetsModal from "./PresetsModal";
-import { FixedTextareaProps, PresetKey, PresetAppend, ChatMessage } from "../../../types";
+import { FixedTextareaProps, PresetKey, PresetAppend, ChatMessage } from "@/types";
 // import { PRESETS } from "../../../lib/presets";
 import { 
   readPromptHistory, 
   addPromptToHistory 
-} from "../../../lib/promptHistory";
+} from "@/lib/promptHistory";
 
 export default function FixedTextareaChat({
   aspectLabel,

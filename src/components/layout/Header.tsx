@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import ThemeToggle from "./ThemeToggle";
-import { SidebarToggleButton } from "./SidebarPresets";
+import ThemeToggle from "@/components/common/ThemeToggle";
+import { SidebarToggleButton } from "@/components/features/presets/SidebarPresets";
 import { getCurrentUser } from "@/utils/supabase/auth/user";
 import { signOut } from "@/utils/supabase/auth/sign-out";
 import { User } from "@supabase/supabase-js";

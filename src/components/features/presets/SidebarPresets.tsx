@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { PRESETS, formatResolution } from "../lib/presets";
-import { PresetKey } from "../types";
+import { PRESETS, formatResolution } from "@/lib/presets";
+import { PresetKey } from "@/types";
 
 type SidebarPresetsProps = {
   selectedKey: PresetKey | null;
